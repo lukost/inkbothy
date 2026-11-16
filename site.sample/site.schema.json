@@ -1,0 +1,326 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Site title, shown in the header and in page titles."
+    },
+    "baseUrl": {
+      "type": "string",
+      "description": "Absolute http(s) origin the site is served from, without a path. Used for canonical URLs, the sitemap and `robots.txt`."
+    },
+    "favicon": {
+      "description": "Site icon: a .svg, .png or .ico file below the site directory.",
+      "type": "string"
+    },
+    "appleTouchIcon": {
+      "description": "Apple touch icon: a .png file below the site directory (180x180 recommended).",
+      "type": "string"
+    },
+    "copyright": {
+      "type": "object",
+      "properties": {
+        "holder": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name shown in the copyright line."
+        },
+        "rights": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Rights statement after the holder, e.g. \"All rights reserved.\""
+        }
+      },
+      "required": [
+        "holder",
+        "rights"
+      ],
+      "additionalProperties": false,
+      "description": "Copyright line in the footer; the years run from the earliest year of a published item to the current year."
+    },
+    "sections": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Name of the section in the menu, and heading of its page unless the section's index.md has a title."
+              },
+              "noun": {
+                "description": "Singular and plural name of one item, e.g. [post, posts]; used in texts such as \"All posts\" and \"No posts yet\".",
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ],
+                "items": false,
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "taxonomies": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "categories",
+                    "tags"
+                  ]
+                },
+                "description": "Taxonomies the section uses: categories and/or tags. Each gets a term index and a page per term. The first declared one fills the menu when `menu` is `taxonomy`."
+              },
+              "menu": {
+                "type": "string",
+                "enum": [
+                  "taxonomy",
+                  "items",
+                  "none"
+                ],
+                "description": "What the menu group of the section lists besides its \"All ...\" link: `taxonomy` (the terms of the first declared taxonomy), `items` (the items by title) or `none` (a plain link, no group)."
+              },
+              "layout": {
+                "type": "string",
+                "const": "stream",
+                "description": "How the section page shows its items: `stream` (full articles, further ones loaded while scrolling), `cards` (a grid of cards) or `list` (titles and dates)."
+              },
+              "stream": {
+                "type": "object",
+                "properties": {
+                  "initial": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Items rendered on the section page at first load."
+                  },
+                  "batch": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991,
+                    "description": "Items revealed per further step while scrolling."
+                  }
+                },
+                "required": [
+                  "initial",
+                  "batch"
+                ],
+                "additionalProperties": false,
+                "description": "Progressive loading of a `stream` section. Required for the `stream` layout, forbidden for the others."
+              }
+            },
+            "required": [
+              "label",
+              "noun",
+              "taxonomies",
+              "menu",
+              "layout",
+              "stream"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Name of the section in the menu, and heading of its page unless the section's index.md has a title."
+              },
+              "noun": {
+                "description": "Singular and plural name of one item, e.g. [post, posts]; used in texts such as \"All posts\" and \"No posts yet\".",
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ],
+                "items": false,
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "taxonomies": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "categories",
+                    "tags"
+                  ]
+                },
+                "description": "Taxonomies the section uses: categories and/or tags. Each gets a term index and a page per term. The first declared one fills the menu when `menu` is `taxonomy`."
+              },
+              "menu": {
+                "type": "string",
+                "enum": [
+                  "taxonomy",
+                  "items",
+                  "none"
+                ],
+                "description": "What the menu group of the section lists besides its \"All ...\" link: `taxonomy` (the terms of the first declared taxonomy), `items` (the items by title) or `none` (a plain link, no group)."
+              },
+              "layout": {
+                "type": "string",
+                "const": "cards",
+                "description": "How the section page shows its items: `stream` (full articles, further ones loaded while scrolling), `cards` (a grid of cards) or `list` (titles and dates)."
+              }
+            },
+            "required": [
+              "label",
+              "noun",
+              "taxonomies",
+              "menu",
+              "layout"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Name of the section in the menu, and heading of its page unless the section's index.md has a title."
+              },
+              "noun": {
+                "description": "Singular and plural name of one item, e.g. [post, posts]; used in texts such as \"All posts\" and \"No posts yet\".",
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ],
+                "items": false,
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "taxonomies": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "categories",
+                    "tags"
+                  ]
+                },
+                "description": "Taxonomies the section uses: categories and/or tags. Each gets a term index and a page per term. The first declared one fills the menu when `menu` is `taxonomy`."
+              },
+              "menu": {
+                "type": "string",
+                "enum": [
+                  "taxonomy",
+                  "items",
+                  "none"
+                ],
+                "description": "What the menu group of the section lists besides its \"All ...\" link: `taxonomy` (the terms of the first declared taxonomy), `items` (the items by title) or `none` (a plain link, no group)."
+              },
+              "layout": {
+                "type": "string",
+                "const": "list",
+                "description": "How the section page shows its items: `stream` (full articles, further ones loaded while scrolling), `cards` (a grid of cards) or `list` (titles and dates)."
+              }
+            },
+            "required": [
+              "label",
+              "noun",
+              "taxonomies",
+              "menu",
+              "layout"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "description": "Sections of the site. Each key is a directory below the site directory and the first URL segment of its items; it must be a clean slug."
+    },
+    "menu": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Menu entries after the implicit Home: names of sections or of top-level pages, in order."
+    },
+    "home": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "latest": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Key of the section whose newest items are shown (by published date)."
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Number of items shown."
+              }
+            },
+            "required": [
+              "latest",
+              "count"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "featured": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Key of the section whose items with `featured: true` are shown, newest first."
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Number of items shown."
+              }
+            },
+            "required": [
+              "featured",
+              "count"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "description": "Blocks of the home page, in order. Each has either `latest` or `featured`, plus `count`."
+    }
+  },
+  "required": [
+    "title",
+    "baseUrl",
+    "copyright",
+    "sections",
+    "menu",
+    "home"
+  ],
+  "additionalProperties": false
+}

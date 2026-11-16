@@ -1,0 +1,335 @@
+@media print {
+  @page {
+    margin: 18mm 16mm;
+
+    @top-left {
+      overflow: hidden;
+      color: #595959;
+      font-family: "Literata", "Literata Fallback", Georgia, serif;
+      font-size: 8pt;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    @bottom-right {
+      content: counter(page) " / " counter(pages);
+      color: #595959;
+      font-family: "Literata", "Literata Fallback", Georgia, serif;
+      font-size: 8pt;
+    }
+  }
+
+  /* Light palette for every theme and OS preference. */
+  :root {
+    color-scheme: light;
+    --bg: #fff;
+    --fg: #1a1a1a;
+    --muted: #595959;
+    --line: #cfcfcf;
+    --control-border: #767676;
+    --link: #8a3f12;
+    --accent: #8a3f12;
+    --code-bg: #f5f5f5;
+    --hl: #ececec;
+    --surface: #f5f5f5;
+    --hover: #f5f5f5;
+    --focus: #8a3f12;
+    --scrim: rgb(0 0 0 / 0.45);
+    --note: #1f5f8b;
+    --note-bg: #e8f0f6;
+    --tip: #3a6a1c;
+    --tip-bg: #eef3e6;
+    --important: #6b3fa0;
+    --important-bg: #f0eaf6;
+    --warning: #855400;
+    --warning-bg: #f7eedb;
+    --caution: #a8261c;
+    --caution-bg: #f8e6e2;
+    --mark-bg: #f5d98b;
+    --mark-fg: #1a1a1a;
+  }
+
+  /* Interface hidden on paper. */
+  .sidebar,
+  .topbar,
+  .backdrop,
+  .skip-link,
+  .search-trigger,
+  .search-dialog,
+  .theme-toggle,
+  .menu-button,
+  .copy-code,
+  .copy-code + .visually-hidden,
+  .heading-anchor,
+  .footnote-backref,
+  .no-print {
+    display: none;
+  }
+
+  /* An open drawer or search dialog must not clip the printout. */
+  html,
+  body {
+    overflow: visible;
+  }
+
+  /* Print ignores the reader's text size. */
+  html {
+    font-size: 11pt;
+    --content-scale: 1;
+    --content-leading: 1.45;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.45;
+  }
+
+  .page,
+  .content {
+    display: block;
+    min-height: 0;
+  }
+
+  main {
+    display: block;
+    max-width: none;
+    padding: 0;
+  }
+
+  /* Collapsed disclosures print open. */
+  main details::details-content {
+    content-visibility: visible;
+    display: block;
+  }
+
+  details:not([open]) > :not(summary) {
+    display: block;
+  }
+
+  .site-footer {
+    padding: 0.75rem 0 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .site-footer a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  p,
+  li,
+  dd,
+  blockquote {
+    orphans: 3;
+    widows: 3;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    break-after: avoid;
+  }
+
+  .alert,
+  img,
+  figure.mermaid,
+  .mermaid-source,
+  .table-wrap,
+  tr,
+  .toc {
+    break-inside: avoid;
+  }
+
+  /* Categories and tags read as plain text lists, not pills. */
+  .article-categories,
+  .article-tags {
+    display: block;
+    margin: 0.25rem 0;
+  }
+
+  .article-categories li,
+  .article-tags li {
+    display: inline;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .article-categories li + li::before {
+    content: ", ";
+  }
+
+  .article-tags li + li {
+    margin-left: 0.6em;
+  }
+
+  .toc,
+  .table-wrap,
+  figure.mermaid {
+    overflow: visible;
+  }
+
+  .toc {
+    background: none;
+  }
+
+  /* Wide tables wrap their cells instead of overflowing the page. */
+  .table-wrap {
+    overflow-wrap: anywhere;
+  }
+
+  .table-wrap table {
+    width: 100%;
+  }
+
+  /* Diagrams print in the light theme. */
+  .mermaid-light {
+    display: block;
+  }
+
+  .mermaid-dark {
+    display: none;
+  }
+
+  /* Code wraps instead of scrolling or clipping. */
+  code,
+  kbd,
+  samp,
+  pre,
+  .code-block pre {
+    font-size: 9pt;
+  }
+
+  :not(pre) > code {
+    background: none;
+  }
+
+  .code-block {
+    overflow: visible;
+    background: none;
+  }
+
+  /* A caption stays on the page of the code or diagram it belongs to. */
+  .code-block figcaption {
+    background: none;
+    break-after: avoid;
+  }
+
+  figure.mermaid > figcaption {
+    break-before: avoid;
+  }
+
+  .code-block pre,
+  .mermaid-source {
+    overflow: visible;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .shiki code {
+    display: block;
+    min-width: 0;
+  }
+
+  .shiki span {
+    color: var(--shiki-light);
+    font-style: var(--shiki-light-font-style);
+    font-weight: var(--shiki-light-font-weight);
+    text-decoration: var(--shiki-light-text-decoration);
+  }
+
+  /* Backgrounds print only where they carry meaning. */
+  .code-block .line.highlighted {
+    border-left: 3px solid var(--muted);
+    background: var(--hl);
+    print-color-adjust: exact;
+  }
+
+  .alert,
+  mark,
+  th {
+    print-color-adjust: exact;
+  }
+
+  /* External addresses are spelled out; internal links, anchors, footnotes and autolinks need no help. */
+  a[href^="http"]:not(.autolink, .heading-anchor, .footnote-ref, .footnote-backref)::after {
+    content: " (" attr(href) ")";
+    color: var(--muted);
+    font-family: var(--font-ui);
+    font-size: 0.8em;
+    font-weight: 400;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+  }
+
+  /* Cards and entries stay whole. */
+  .card {
+    break-inside: avoid;
+  }
+
+  /* Resume: compact type, contact details in one wrapping row, skills in two balanced columns, positions never split. */
+  .resume {
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+
+  .resume .resume-header h1 {
+    margin: 0;
+    font-size: 1.7rem;
+  }
+
+  .resume .resume-headline {
+    margin: 0.1rem 0 0.25rem;
+    font-size: 1.05rem;
+  }
+
+  .resume .resume-contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1rem;
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+  }
+
+  .resume .resume-section {
+    margin-top: 0.8rem;
+  }
+
+  .resume .resume-section > h2 {
+    margin-bottom: 0.3rem;
+    font-size: 1.15rem;
+  }
+
+  .resume .resume-entry {
+    margin-top: 0.45rem;
+    break-inside: avoid;
+  }
+
+  .resume .resume-entry h3 {
+    font-size: 1rem;
+  }
+
+  .resume .resume-entry > ul {
+    margin-top: 0.2rem;
+  }
+
+  .resume .resume-contact a[href^="http"]::after {
+    content: none;
+  }
+
+  .resume .resume-skills {
+    display: block;
+    column-count: 2;
+    column-gap: 1.5rem;
+  }
+
+  .resume .resume-skills > div {
+    margin-bottom: 0.15rem;
+    break-inside: avoid;
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+}

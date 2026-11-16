@@ -1,0 +1,149 @@
+.article-header a {
+  text-decoration: none;
+}
+
+.article-header a:hover {
+  text-decoration: underline;
+}
+
+.article-header h2 a {
+  color: inherit;
+}
+
+.article-header h2 {
+  margin-top: 0;
+}
+
+.article-dates {
+  margin: 0.25em 0;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 0.875em;
+}
+
+.article-dates span + span::before {
+  content: "·";
+  margin-inline: 0.5em;
+}
+
+.article-categories,
+.article-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  margin: 0.5em 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-ui);
+  font-size: 0.8125em;
+}
+
+.article-categories li,
+.article-tags li {
+  padding: 0.06em 0.86em;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.article-categories li {
+  background: var(--hl);
+}
+
+.article-tags li::before {
+  content: "#";
+  color: var(--muted);
+}
+
+.draft-banner {
+  display: inline-block;
+  margin: 0 0 1em;
+  padding: 0.25em 0.75em;
+  border: 1px solid var(--caution);
+  border-radius: var(--radius);
+  background: var(--caution-bg);
+  color: var(--caution);
+  font-family: var(--font-ui);
+  font-size: 0.875em;
+  font-weight: 700;
+}
+
+.stream-rest > li {
+  padding: 1.5em 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.article-footer {
+  margin-top: 2.5em;
+  padding-top: 1em;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 0.875em;
+}
+
+.article-footer h2,
+.article-footer h3 {
+  margin: 0 0 0.5em;
+  font-family: var(--font-ui);
+  font-size: 0.875em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.article-updates ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.article-updates li + li {
+  margin-top: 0.25em;
+}
+
+.article-copyright {
+  margin: 1em 0 0;
+}
+
+.stream .article + .article {
+  margin-top: 4em;
+  padding-top: 3em;
+  border-top: 1px solid var(--line);
+}
+
+.empty {
+  color: var(--muted);
+}
+
+.stream-rest {
+  margin: 3em 0 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.stream-rest .article-header h2 {
+  font-size: 1.44em;
+}
+
+.stream-more {
+  display: flex;
+  justify-content: center;
+  margin: 2em 0;
+}
+
+.stream-load {
+  padding: 0.69em 1.6em;
+  font-size: 0.875em;
+}
+
+.stream-load[aria-disabled="true"] {
+  cursor: progress;
+}
+
+.stream-note {
+  margin: 0.57em 0 0;
+  color: var(--caution);
+  font-family: var(--font-ui);
+  font-size: 0.875em;
+}

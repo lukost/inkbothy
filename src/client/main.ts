@@ -1,0 +1,20 @@
+import { guarded } from './boot.ts';
+import { ENHANCERS, runEnhancers } from './enhance.ts';
+import { initPrint } from './print.ts';
+import { initScrollSpy } from './scrollspy.ts';
+import { initSearch } from './search/init.ts';
+import { initSidebar } from './sidebar.ts';
+import { initStream } from './stream.ts';
+import { initTextSize } from './text-size.ts';
+import { initTheme } from './theme.ts';
+import { initTopbarTitle } from './topbar-title.ts';
+
+guarded('theme', initTheme);
+guarded('text size', initTextSize);
+guarded('sidebar', initSidebar);
+guarded('search', initSearch);
+guarded('print', initPrint);
+guarded('stream', initStream);
+guarded('top bar title', initTopbarTitle);
+guarded('scroll spy', initScrollSpy);
+await runEnhancers(document.body, ENHANCERS);

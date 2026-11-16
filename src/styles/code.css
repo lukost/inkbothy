@@ -1,0 +1,102 @@
+.code-block {
+  margin: 1.5em 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--code-bg);
+}
+
+/* Header bar: title or language on the left, the copy button on the right. */
+.code-block figcaption {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  min-height: 2.86em;
+  padding: 0.29em 0.57em 0.29em 1.14em;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+/* Without the copy button an untagged block has nothing to show in its bar. */
+.code-block figcaption:empty {
+  display: none;
+}
+
+.code-lang {
+  color: var(--muted);
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 1.03em 1.14em;
+  overflow-x: auto;
+  font-size: 0.875em;
+  line-height: 1.5;
+  tab-size: 4;
+}
+
+/* The figure clips overflow, so the ring sits inside the box. */
+.code-block pre:focus-visible {
+  outline-offset: -3px;
+}
+
+.copy-code {
+  margin-left: auto;
+  padding: 0.16em 0.65em;
+  font-size: 0.93em;
+}
+
+/* Shiki sets its colours as variables; the structure mirrors tokens.css (dark first). */
+.shiki span {
+  color: var(--shiki-dark);
+  font-style: var(--shiki-dark-font-style);
+  font-weight: var(--shiki-dark-font-weight);
+  text-decoration: var(--shiki-dark-text-decoration);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .shiki span {
+    color: var(--shiki-light);
+    font-style: var(--shiki-light-font-style);
+    font-weight: var(--shiki-light-font-weight);
+    text-decoration: var(--shiki-light-text-decoration);
+  }
+}
+
+:root[data-theme="light"] .shiki span {
+  color: var(--shiki-light);
+  font-style: var(--shiki-light-font-style);
+  font-weight: var(--shiki-light-font-weight);
+  text-decoration: var(--shiki-light-text-decoration);
+}
+
+/* The code box is as wide as its longest line, so a highlighted line's band covers scrolling. */
+.shiki code {
+  display: inline-block;
+  min-width: 100%;
+}
+
+.line-numbers code {
+  counter-reset: line calc(var(--line-start, 1) - 1);
+}
+
+/* The gutter is measured in ch of the code font, so it follows the code size. No column width is in ch. */
+.line-numbers .line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3ch;
+  margin-right: 1.5ch;
+  color: var(--muted);
+  text-align: right;
+  user-select: none;
+}
+
+/* An empty highlighted line keeps its height (an empty inline-block has none). */
+.code-block .line.highlighted {
+  display: inline-block;
+  width: 100%;
+  min-height: 1lh;
+  vertical-align: top;
+  background: var(--hl);
+}

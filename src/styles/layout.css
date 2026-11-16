@@ -1,0 +1,407 @@
+html {
+  scroll-padding-top: calc(var(--topbar-h) + 1rem);
+}
+
+.skip-link {
+  position: absolute;
+  top: -5rem;
+  left: 0.5rem;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+}
+
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+.site-title {
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+/* Default layout: top bar, then the stacked menu, then the content. Works without scripts. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: var(--topbar-h);
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  font-family: var(--font-ui);
+}
+
+.topbar-start {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.topbar .site-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The article title fades in once the page heading has scrolled away. */
+.topbar-title {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 650;
+  opacity: 0;
+  text-align: center;
+  text-overflow: ellipsis;
+  visibility: hidden;
+  white-space: nowrap;
+  transition:
+    opacity 0.15s ease,
+    visibility 0s linear 0.15s;
+}
+
+.topbar-title-shown {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+/* Page tools: icon buttons that need the script, so they show once the head script has set js. */
+.topbar-tools {
+  display: none;
+  flex: none;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.js .topbar-tools {
+  display: flex;
+}
+
+.topbar-tools button {
+  display: inline-flex;
+}
+
+.topbar button {
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+}
+
+.topbar-tools [hidden] {
+  display: none;
+}
+
+.topbar-tools button[aria-disabled="true"] {
+  background: var(--surface);
+  cursor: default;
+  opacity: 0.5;
+}
+
+.sidebar {
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  font-family: var(--font-ui);
+}
+
+.sidebar-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0.75rem;
+}
+
+.sidebar-body .site-menu {
+  flex: 1;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/*
+ * Main is a row: spacer, column, spacer. The column takes a share of the reading area between a
+ * minimum and a maximum width; the spacers share what is left, 0.625 : φ, so the column sits left
+ * of centre, and the left one is capped so that padding plus spacer never exceeds
+ * --left-margin-max. When the area is narrower than the column minimum, the column fills it and
+ * the spacers have nothing.
+ */
+main {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  width: 100%;
+  padding: 1.25rem 1rem 2rem;
+}
+
+main::before,
+main::after {
+  content: "";
+  flex-basis: 0;
+}
+
+main::before {
+  flex-grow: 0.625;
+  max-width: calc(var(--left-margin-max) - var(--main-pad));
+}
+
+main::after {
+  flex-grow: 1.618;
+}
+
+/* The whole column follows the reader's text size: content sizes itself in em. */
+.column {
+  font-size: calc(1rem * var(--content-scale));
+  line-height: var(--content-leading);
+  flex: 0 1 clamp(min(var(--column-min), 100%), var(--column-share), var(--column-max));
+  min-width: 0;
+}
+
+.site-footer {
+  padding: 1.25rem 1rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+/* Controls that need the script show once the head script has set js; a failed script load removes it. */
+.menu-button,
+.backdrop {
+  display: none;
+}
+
+.menu-button {
+  flex: none;
+}
+
+.js .menu-button {
+  display: inline-flex;
+}
+
+.icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  vertical-align: middle;
+}
+
+/* The theme button shows the icon of the theme in force; dark is the fallback, as in tokens.css. */
+.icon-light {
+  display: none;
+}
+
+:root[data-theme="light"] .icon-light,
+:root[data-theme="light"] .icon-dark {
+  display: inline;
+}
+
+:root[data-theme="light"] .icon-dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .icon-light {
+    display: inline;
+  }
+
+  :root:not([data-theme="dark"]) .icon-dark {
+    display: none;
+  }
+}
+
+/* Narrow: the menu button opens the sidebar as a drawer; without `js` the page stays stacked. */
+@media (max-width: 56.2499em) {
+  .js .sidebar {
+    position: fixed;
+    top: var(--topbar-h);
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    width: min(20rem, 85vw);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+    visibility: hidden;
+    transform: translateX(-100%);
+    transition:
+      transform 0.2s ease,
+      visibility 0s linear 0.2s;
+  }
+
+  .js.drawer-open .sidebar {
+    visibility: visible;
+    transform: none;
+    transition-delay: 0s;
+  }
+
+  /* The viewport scrolls with the root element; body is locked too for browsers that scroll it. */
+  .drawer-open,
+  .drawer-open body {
+    overflow: hidden;
+  }
+
+  .drawer-open .backdrop {
+    position: fixed;
+    inset: var(--topbar-h) 0 0;
+    z-index: 10;
+    display: block;
+    background: var(--scrim);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js .sidebar,
+  .topbar-title {
+    transition: none;
+  }
+}
+
+/* Page navigation cross-fades the content; the top bar and sidebar, which exist once per page, stay put. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+
+  .topbar {
+    view-transition-name: topbar;
+  }
+
+  /* The bar is not faded: it switches at once, and only its title changes. */
+  ::view-transition-old(topbar) {
+    display: none;
+  }
+
+  ::view-transition-new(topbar) {
+    animation: none;
+  }
+
+  /* Only the wide column is a fixed landmark; a stacked or drawer sidebar crossfades with the page. */
+  @media (min-width: 56.25em) {
+    .sidebar {
+      view-transition-name: sidebar;
+    }
+  }
+}
+
+/* Wide: a sticky sidebar column below the top bar; the menu button hides it completely. */
+@media (min-width: 56.25em) {
+  .page {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: sticky;
+    top: var(--topbar-h);
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--topbar-h));
+    overflow-y: auto;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+
+  .content {
+    min-height: calc(100dvh - var(--topbar-h));
+  }
+
+  main {
+    padding: 2rem var(--main-pad) 3rem;
+  }
+
+  .site-footer {
+    padding-inline: var(--main-pad);
+  }
+
+  html.js[data-sidebar="collapsed"] .page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.js[data-sidebar="collapsed"] .sidebar {
+    display: none;
+  }
+}
+
+/*
+ * Wide enough for the right spacer to hold the rail: the table of contents of a single article
+ * leaves the text and rides beside it, below the top bar. The article grows into the spacer by
+ * the rail's width, so the text keeps the column's width.
+ */
+@media (min-width: 100em) {
+  .article-single {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--toc-w);
+    column-gap: var(--toc-gap);
+    width: calc(100% + var(--toc-w) + var(--toc-gap));
+  }
+
+  .article-single > * {
+    grid-column: 1;
+  }
+
+  .article-single > .toc {
+    position: sticky;
+    top: calc(var(--topbar-h) + 1rem);
+    grid-column: 2;
+    grid-row: 1 / span 4;
+    align-self: start;
+    max-height: calc(100dvh - var(--topbar-h) - 2rem);
+    margin: 0;
+    padding: 0 0 0 1.07em;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 0;
+    border-left: 1px solid var(--line);
+    border-radius: 0;
+    background: none;
+  }
+
+  .article-single > .toc a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  .article-single > .toc a:hover {
+    color: var(--fg);
+    text-decoration: underline;
+  }
+
+  .article-single > .toc a[aria-current="location"] {
+    color: var(--accent);
+    font-weight: 700;
+  }
+}
+
+/* Touch screens get larger targets. */
+@media (pointer: coarse) {
+  .topbar button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}

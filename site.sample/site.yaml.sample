@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=site.schema.json
+#
+# Site configuration. `make init-site` copies this file as site.yaml; every key is documented in
+# docs/site-yaml.md. Unknown keys are errors.
+
+# Site title: header and page titles.
+title: My site
+
+# Absolute http(s) origin the site is served from, without a path.
+# Used for canonical URLs, the sitemap and robots.txt.
+baseUrl: https://example.com
+
+# Site icon, a .svg, .png or .ico file below the site directory.
+# favicon: icons/favicon.svg
+# Apple touch icon, a .png file below the site directory (180x180 recommended).
+# appleTouchIcon: icons/apple-touch-icon.png
+
+# Footer line: "© <years> <holder>. <rights>"
+copyright:
+  holder: Your Name
+  rights: All rights reserved.
+
+# Each key is a directory in the site directory and the first URL segment of its items.
+sections:
+  blog:
+    label: Blog
+    layout: stream # stream | cards | list
+    noun: [post, posts]
+    taxonomies: [categories, tags] # any of categories, tags
+    stream: { initial: 3, batch: 3 } # stream layout only, and required there
+    menu: taxonomy # taxonomy (terms of the first declared taxonomy) | items | none
+  projects:
+    label: Projects
+    layout: cards
+    noun: [project, projects]
+    taxonomies: [tags]
+    menu: items
+  # notes:
+  #   label: Notes
+  #   layout: list
+  #   noun: [note, notes]
+  #   taxonomies: []
+  #   menu: none
+
+# Menu after the implicit Home entry: sections and top-level pages (directories of the site
+# directory), in this order.
+menu: [about, resume, blog, projects]
+
+# Blocks on the home page, in order: the newest items of a section, or its items marked `featured: true`.
+home:
+  - { latest: blog, count: 3 }
+  - { featured: projects, count: 3 }

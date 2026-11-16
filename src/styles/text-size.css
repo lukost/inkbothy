@@ -1,0 +1,25 @@
+/* Article text size steps, set as data-text-size on the root (see TEXT_SIZES); 100% is the default in tokens.css. Smaller steps get tighter leading. */
+html[data-text-size="75"] {
+  --content-scale: 0.75;
+  --content-leading: 1.34;
+}
+
+html[data-text-size="82"] {
+  --content-scale: 0.82;
+  --content-leading: 1.42;
+}
+
+html[data-text-size="90"] {
+  --content-scale: 0.9;
+  --content-leading: 1.52;
+}
+
+html[data-text-size="112"] {
+  --content-scale: 1.12;
+  --content-leading: 1.65;
+}
+
+html[data-text-size="125"] {
+  --content-scale: 1.25;
+  --content-leading: 1.65;
+}

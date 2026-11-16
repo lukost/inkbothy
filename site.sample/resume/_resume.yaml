@@ -1,0 +1,28 @@
+# Resume data; see docs/authoring.md for the fields. Dates are YYYY-MM; `end` may be "present".
+headline: "Your professional headline"
+
+contact:
+  location: "City, Country"
+  links:
+    - { label: "Website", url: "https://example.com" }
+
+experience:
+  - role: "Current role"
+    org: "Employer"
+    start: 2022-01
+    end: present
+    highlights:
+      - "An achievement with a **measurable** outcome."
+
+education:
+  - degree: "Degree"
+    institution: "University"
+    start: 2012-10
+    end: 2017-06
+
+skills:
+  - group: "Group"
+    items: ["Skill one", "Skill two"]
+
+languages:
+  - { name: "English", level: "native" }

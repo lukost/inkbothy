@@ -1,0 +1,144 @@
+/* Theme-independent tokens. */
+html {
+  --font-body:
+    "Literata", "Literata Fallback", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-ui:
+    "IBM Plex Sans", "IBM Plex Sans Fallback", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", sans-serif;
+  --font-mono: "0xProto", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  /* The reading column, in rem and a share of the reading area, never in the text size: smaller text fits more per line. */
+  --column-min: 40rem;
+  --column-max: 60rem;
+  --column-share: 72%;
+  /* Table-of-contents rail: its width and the gap to the column. */
+  --toc-w: 14rem;
+  --toc-gap: 2rem;
+  --sidebar-w: 16rem;
+  /* Inline padding of main on wide viewports, and the widest the content's left margin (padding plus spacer) may get. */
+  --main-pad: 2rem;
+  --left-margin-max: 6.25rem;
+  --topbar-h: 2.75rem;
+  --radius: 0.375rem;
+  /* Article text size; text-size.css overrides both per step. */
+  --content-scale: 1;
+  --content-leading: 1.65;
+}
+
+/* Colour tokens. Bare :root is the dark fallback; each theme is declared twice (OS preference, explicit choice), and the copies must match. */
+:root {
+  color-scheme: dark;
+  --bg: #282828;
+  --fg: #ebdbb2;
+  --muted: #a89984;
+  --line: #3c3836;
+  --control-border: #928374;
+  --link: #83a598;
+  --accent: #83a598;
+  --code-bg: #1d2021;
+  --hl: #34302f;
+  --surface: #1d2021;
+  --hover: #32302f;
+  --focus: #fabd2f;
+  --scrim: rgb(0 0 0 / 0.6);
+  --note: #83a598;
+  --note-bg: #2a3032;
+  --tip: #b8bb26;
+  --tip-bg: #2d3020;
+  --important: #d3869b;
+  --important-bg: #35292c;
+  --warning: #fabd2f;
+  --warning-bg: #38301c;
+  --caution: #ff6b57;
+  --caution-bg: #3a2724;
+  --mark-bg: #5a4a14;
+  --mark-fg: #ebdbb2;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #fbfaf8;
+    --fg: #1d1d1f;
+    --muted: #5b5f65;
+    --line: #dfdcd5;
+    --control-border: #7a7e84;
+    --link: #1f5a86;
+    --accent: #1f5a86;
+    --code-bg: #f2f0eb;
+    --hl: #e6ebef;
+    --surface: #f2f0eb;
+    --hover: #ebe9e4;
+    --focus: #1f5a86;
+    --scrim: rgb(29 29 31 / 0.45);
+    --note: #1f5a86;
+    --note-bg: #e6eef5;
+    --tip: #2c6a31;
+    --tip-bg: #e9f1e8;
+    --important: #6a3f9c;
+    --important-bg: #eeeaf4;
+    --warning: #7a5200;
+    --warning-bg: #f3eedd;
+    --caution: #a3261f;
+    --caution-bg: #f5e7e5;
+    --mark-bg: #f0e3a0;
+    --mark-fg: #1d1d1f;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #fbfaf8;
+  --fg: #1d1d1f;
+  --muted: #5b5f65;
+  --line: #dfdcd5;
+  --control-border: #7a7e84;
+  --link: #1f5a86;
+  --accent: #1f5a86;
+  --code-bg: #f2f0eb;
+  --hl: #e6ebef;
+  --surface: #f2f0eb;
+  --hover: #ebe9e4;
+  --focus: #1f5a86;
+  --scrim: rgb(29 29 31 / 0.45);
+  --note: #1f5a86;
+  --note-bg: #e6eef5;
+  --tip: #2c6a31;
+  --tip-bg: #e9f1e8;
+  --important: #6a3f9c;
+  --important-bg: #eeeaf4;
+  --warning: #7a5200;
+  --warning-bg: #f3eedd;
+  --caution: #a3261f;
+  --caution-bg: #f5e7e5;
+  --mark-bg: #f0e3a0;
+  --mark-fg: #1d1d1f;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #282828;
+  --fg: #ebdbb2;
+  --muted: #a89984;
+  --line: #3c3836;
+  --control-border: #928374;
+  --link: #83a598;
+  --accent: #83a598;
+  --code-bg: #1d2021;
+  --hl: #34302f;
+  --surface: #1d2021;
+  --hover: #32302f;
+  --focus: #fabd2f;
+  --scrim: rgb(0 0 0 / 0.6);
+  --note: #83a598;
+  --note-bg: #2a3032;
+  --tip: #b8bb26;
+  --tip-bg: #2d3020;
+  --important: #d3869b;
+  --important-bg: #35292c;
+  --warning: #fabd2f;
+  --warning-bg: #38301c;
+  --caution: #ff6b57;
+  --caution-bg: #3a2724;
+  --mark-bg: #5a4a14;
+  --mark-fg: #ebdbb2;
+}

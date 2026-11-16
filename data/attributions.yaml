@@ -1,0 +1,7 @@
+# Assets that do not come from npm packages.
+- name: 0xProto
+  version: "2.502"
+  author: 0xType
+  url: https://github.com/0xType/0xProto
+  license: OFL-1.1
+  licenseFile: 0xProto-OFL.txt

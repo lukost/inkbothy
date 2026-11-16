@@ -1,0 +1,62 @@
+.site-menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-menu ul ul {
+  margin-left: 0.75rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--line);
+}
+
+.site-menu a,
+.site-menu summary {
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius);
+  color: var(--fg);
+  font-size: 0.9375rem;
+  text-decoration: none;
+}
+
+.site-menu a {
+  display: block;
+}
+
+/* Keeps the disclosure triangle; `display: block` removes it. */
+.site-menu summary {
+  display: list-item;
+  list-style: disclosure-closed inside;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.site-menu details[open] > summary {
+  list-style-type: disclosure-open;
+}
+
+.site-menu summary::marker {
+  color: var(--muted);
+}
+
+.site-menu a:hover,
+.site-menu summary:hover {
+  background: var(--hover);
+}
+
+.site-menu a[aria-current="page"] {
+  background: var(--hl);
+  box-shadow: inset 3px 0 0 var(--accent);
+  font-weight: 650;
+}
+
+.site-menu .count {
+  color: var(--muted);
+}
+
+@media (forced-colors: active) {
+  .site-menu a[aria-current="page"] {
+    outline: 2px solid currentcolor;
+    outline-offset: -2px;
+  }
+}

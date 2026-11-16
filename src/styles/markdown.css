@@ -1,0 +1,233 @@
+.md-content > :first-child {
+  margin-top: 0;
+}
+
+/* Long words and URLs wrap instead of widening the page; code and tables scroll instead. */
+.md-content {
+  overflow-wrap: anywhere;
+}
+
+.md-content li > :where(p, ul, ol) {
+  margin-block: 0.4em;
+}
+
+.md-content :where(li + li) {
+  margin-top: 0.2em;
+}
+
+.mermaid-error {
+  outline: 2px solid var(--caution);
+}
+
+.heading-anchor {
+  margin-left: 0.4em;
+  font-family: var(--font-ui);
+  font-weight: 400;
+  text-decoration: none;
+  opacity: 0;
+}
+
+:is(h2, h3, h4):hover > .heading-anchor,
+.heading-anchor:focus-visible {
+  opacity: 1;
+}
+
+/* Touch screens have no hover. */
+@media (hover: none) {
+  .heading-anchor {
+    opacity: 1;
+  }
+}
+
+blockquote {
+  padding: 0.1em 1em;
+  border-left: 4px solid var(--line);
+  color: var(--fg);
+}
+
+.alert {
+  padding: 0.5em 1em;
+  border-left: 4px solid;
+  border-radius: var(--radius);
+}
+
+.alert > :last-child {
+  margin-bottom: 0.25em;
+}
+
+.alert-title {
+  margin: 0.25em 0;
+  font-family: var(--font-ui);
+  font-weight: 700;
+}
+
+.alert-note {
+  border-color: var(--note);
+  background: var(--note-bg);
+}
+
+.alert-note .alert-title {
+  color: var(--note);
+}
+
+.alert-tip {
+  border-color: var(--tip);
+  background: var(--tip-bg);
+}
+
+.alert-tip .alert-title {
+  color: var(--tip);
+}
+
+.alert-important {
+  border-color: var(--important);
+  background: var(--important-bg);
+}
+
+.alert-important .alert-title {
+  color: var(--important);
+}
+
+.alert-warning {
+  border-color: var(--warning);
+  background: var(--warning-bg);
+}
+
+.alert-warning .alert-title {
+  color: var(--warning);
+}
+
+.alert-caution {
+  border-color: var(--caution);
+  background: var(--caution-bg);
+}
+
+.alert-caution .alert-title {
+  color: var(--caution);
+}
+
+.toc {
+  margin: 1.5em 0;
+  padding: 0.53em 1.07em;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-family: var(--font-ui);
+  font-size: 0.9375em;
+}
+
+.toc ol {
+  margin: 0.25em 0;
+  padding-left: 1.5em;
+}
+
+.footnotes {
+  color: var(--muted);
+  font-size: 0.9375em;
+}
+
+.footnotes-sep {
+  margin-top: 3em;
+}
+
+.footnote-ref {
+  font-family: var(--font-ui);
+  font-size: 0.75em;
+}
+
+.footnote-backref {
+  margin-left: 0.25em;
+  text-decoration: none;
+}
+
+.contains-task-list,
+.task-list-item {
+  list-style: none;
+}
+
+.contains-task-list {
+  padding-left: 0.25em;
+}
+
+.task-list-item input {
+  margin: 0 0.5em 0 0;
+  vertical-align: middle;
+  accent-color: var(--accent);
+}
+
+.table-wrap {
+  max-width: 100%;
+  margin: 1.5em 0;
+  overflow-x: auto;
+  overflow-wrap: normal;
+}
+
+.table-wrap table {
+  border-collapse: collapse;
+  font-family: var(--font-ui);
+  font-size: 0.9375em;
+  line-height: 1.45;
+}
+
+.table-wrap :where(th, td) {
+  padding: 0.48em 0.85em;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table-wrap th {
+  background: var(--surface);
+  font-weight: 650;
+}
+
+.md-content figure {
+  margin: 1.5em 0;
+}
+
+.md-content figure:not(.code-block) > figcaption {
+  margin-top: 0.4em;
+}
+
+figure.mermaid {
+  overflow-x: auto;
+  text-align: center;
+}
+
+/* Both drawings are in the page; the one for the theme in force is shown. Dark is the fallback, as in tokens.css. */
+.mermaid-light {
+  display: none;
+}
+
+:root[data-theme="light"] .mermaid-light {
+  display: block;
+}
+
+:root[data-theme="light"] .mermaid-dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .mermaid-light {
+    display: block;
+  }
+
+  :root:not([data-theme="dark"]) .mermaid-dark {
+    display: none;
+  }
+}
+
+.mermaid-error-message {
+  margin: 0;
+  color: var(--caution);
+  font-family: var(--font-ui);
+  font-weight: 700;
+}
+
+.mermaid-source {
+  overflow-x: auto;
+  padding: 0.86em 1.14em;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--code-bg);
+}

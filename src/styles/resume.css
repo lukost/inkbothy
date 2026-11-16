@@ -1,0 +1,95 @@
+/* The resume keeps the document feel: its title sits 2em of its own size below the top, as an unclassed h1 would. */
+.resume-header .page-title {
+  margin-top: 2em;
+  margin-bottom: 0.12em;
+}
+
+.resume-headline {
+  margin: 0 0 0.43em;
+  color: var(--muted);
+  font-size: 1.15em;
+}
+
+.resume-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28em 1.39em;
+  margin: 0.56em 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-ui);
+  font-size: 0.9em;
+}
+
+.resume-section {
+  margin-top: 2em;
+}
+
+.resume-section > h2 {
+  margin-top: 0;
+  padding-bottom: 0.14em;
+  border-bottom: 1px solid var(--line);
+}
+
+.resume-entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resume-entry {
+  margin-top: 1.25em;
+}
+
+.resume-entry h3 {
+  margin: 0;
+  font-size: 1.1em;
+}
+
+.resume-place,
+.resume-period {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 0.875em;
+}
+
+.resume-entry > ul {
+  margin: 0.5em 0 0;
+  padding-left: 1.25em;
+}
+
+.resume-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  margin: 0;
+}
+
+.resume-skills > div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
+  gap: 0.25em 1.25em;
+}
+
+.resume-skills dt {
+  font-weight: 700;
+}
+
+.resume-skills dd {
+  margin: 0;
+}
+
+.resume-languages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em 1.5em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resume-publications {
+  margin: 0;
+  padding-left: 1.25em;
+}
