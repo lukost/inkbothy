@@ -1,6 +1,14 @@
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
-import { DEFAULT_PORT, dirFlag, parseOrUsage, resolveSettings } from '../../src/lib/cli.ts';
+import { pathToFileURL } from 'node:url';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  DEFAULT_PORT,
+  dirFlag,
+  interruptSignal,
+  parseOrUsage,
+  resolveSettings,
+  runIfMain,
+} from '../../src/lib/cli.ts';
 import { BUILD, PUBLISH, SITE_DEFAULT } from '../../src/lib/paths.ts';
 
 describe('parseOrUsage', () => {
@@ -17,6 +25,47 @@ describe('parseOrUsage', () => {
     };
     expect(parseOrUsage(parse, 'usage: x', { write: (t) => written.push(t) })).toBeUndefined();
     expect(written.join('')).toBe('error: bad flag\nusage: x\n');
+  });
+});
+
+describe('interruptSignal', () => {
+  const NAMES = ['SIGINT', 'SIGTERM'] as const;
+
+  /**
+   * Calls `interruptSignal` and lets `observe` use the signal while its listeners are installed;
+   * they are removed afterwards.
+   * @returns how many listeners it added for each of `NAMES`
+   */
+  function withInterruptSignal(observe: (signal: AbortSignal) => void = () => undefined): number[] {
+    const known = NAMES.map((name) => process.listeners(name));
+    const signal = interruptSignal();
+    const added = NAMES.map((name, i) =>
+      process.listeners(name).filter((l) => !known[i]?.includes(l)),
+    );
+    try {
+      observe(signal);
+    } finally {
+      for (const [i, name] of NAMES.entries()) {
+        for (const listener of added[i] ?? []) {
+          process.off(name, listener);
+        }
+      }
+    }
+    return added.map((l) => l.length);
+  }
+
+  it.each(NAMES)('aborts on %s, and not before', (name) => {
+    let seen = { before: true, after: false };
+    withInterruptSignal((signal) => {
+      const before = signal.aborted;
+      process.emit(name);
+      seen = { before, after: signal.aborted };
+    });
+    expect(seen).toEqual({ before: false, after: true });
+  });
+
+  it('listens for each signal once', () => {
+    expect(withInterruptSignal()).toEqual([1, 1]);
   });
 });
 
@@ -58,6 +107,10 @@ describe('resolveSettings', () => {
       port: 0,
       drafts: true,
     });
+  });
+
+  it('does not read an invalid variable of a setting the flag provides', () => {
+    expect(resolveSettings({ port: '2' }, { PORT: 'x' }).port).toBe(2);
   });
 
   it('lets flags win over the environment, setting by setting', () => {
@@ -107,5 +160,44 @@ describe('resolveSettings', () => {
 
   it('accepts the largest port', () => {
     expect(resolveSettings({ port: '65535' }, {}).port).toBe(65535);
+  });
+});
+
+describe('runIfMain', () => {
+  const script = path.resolve('some/script.ts');
+  const url = pathToFileURL(script).href;
+  const savedExitCode = process.exitCode;
+
+  afterEach(() => {
+    process.exitCode = savedExitCode;
+  });
+
+  it('runs and sets the exit code when the module is the started script', async () => {
+    const run = vi.fn(async () => 7);
+    await runIfMain(url, run, script);
+    expect(run).toHaveBeenCalledOnce();
+    expect(process.exitCode).toBe(7);
+  });
+
+  it('does nothing when another script was started', async () => {
+    process.exitCode = undefined;
+    const run = vi.fn(async () => 7);
+    await runIfMain(url, run, path.resolve('other/script.ts'));
+    expect(run).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it('does nothing without a started script', async () => {
+    const run = vi.fn(async () => 7);
+    await runIfMain(url, run, undefined);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('propagates a rejection of run and leaves the exit code alone', async () => {
+    process.exitCode = undefined;
+    await expect(runIfMain(url, () => Promise.reject(new Error('boom')), script)).rejects.toThrow(
+      'boom',
+    );
+    expect(process.exitCode).toBeUndefined();
   });
 });

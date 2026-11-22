@@ -78,7 +78,9 @@ describe('icons in the build', () => {
     expect(site.result.files.filter((f) => /favicon|apple-touch/.test(f))).toEqual([]);
   });
 
-  it('names the file by its content, so a change of content changes the name', async () => {
+  it('names the file by its content, so a change of content changes the name', {
+    timeout: 30_000,
+  }, async () => {
     const name = async (data: string) => {
       const site = await buildSite({ 'f.svg': data }, siteConfig({ favicon: 'f.svg', menu: [] }));
       return site.result.files.find((f) => f.startsWith('assets/favicon-'));

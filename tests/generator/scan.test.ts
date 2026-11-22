@@ -1,15 +1,38 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { scanContent } from '../../src/generator/scan.ts';
 import { doc, LIST, SECTIONS, trackedTrees } from '../helpers.ts';
 
 const { tree } = trackedTrees();
 
+afterEach(() => vi.restoreAllMocks());
+
 const ok = (title = 'T') => doc(`title: ${title}\npublished: 2026-01-01`);
 const scan = (dir: string, drafts = false) => scanContent(dir, { sections: SECTIONS, drafts });
 
 describe('scanContent', () => {
+  it.each(['blog/locked', 'blog/b/img'])(
+    'propagates a directory that cannot be read: %s',
+    async (locked) => {
+      const dir = await tree({
+        'blog/b/index.md': ok('B'),
+        'blog/b/img/x.png': 'p',
+        'blog/locked/index.md': ok('L'),
+      });
+      const readdir = fs.readdir.bind(fs);
+      vi.spyOn(fs, 'readdir').mockImplementation(async (target, ...rest) => {
+        if (String(target) === path.join(dir, locked)) {
+          throw Object.assign(new Error(`EACCES: permission denied, scandir '${target}'`), {
+            code: 'EACCES',
+          });
+        }
+        return readdir(target, ...rest);
+      });
+      await expect(scan(dir)).rejects.toThrow('EACCES');
+    },
+  );
+
   it('loads bundles at every level with url/section/slug and sorted assets', async () => {
     const dir = await tree({
       'index.md': ok('Home'),

@@ -217,6 +217,16 @@ describe('parseResume', () => {
         { title: 'T', venue: 'V', year: '99' },
         'a title, a venue and a four-digit year',
       ],
+      [
+        'publications',
+        { title: 'T', venue: 'V', year: '20201' },
+        'a title, a venue and a four-digit year',
+      ],
+      [
+        'publications',
+        { title: 'T', venue: 'V', year: '20x1' },
+        'a title, a venue and a four-digit year',
+      ],
       ['publications', { title: 'T', year: '2020' }, 'a title, a venue and a four-digit year'],
     ])('drops a %s entry %j that lacks required fields', (key, entry, needs) => {
       const { warnings, resume } = read({ [key]: [entry] });

@@ -104,6 +104,8 @@ export async function bundle(entries: BundleEntries = DEFAULT_ENTRIES): Promise<
     assetNames: 'assets/fonts/[name]-[hash]',
     loader: { '.woff2': 'file' },
     metafile: true,
+    // Keep paths as imported: with a symlinked node_modules the metafile would otherwise name the real location.
+    preserveSymlinks: true,
     write: false,
     logLevel: 'silent',
   });

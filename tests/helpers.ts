@@ -8,10 +8,12 @@ import { ROOT } from '../src/lib/paths.ts';
 import { html, type Markup } from '../src/templates/html.ts';
 import { type LayoutOptions, pageStyle, renderLayout } from '../src/templates/layout.ts';
 import type { Item, Meta, TermLookup } from '../src/types.ts';
+import { TMP_VAR } from './tmp-root.ts';
 
-export const TMP = path.join(ROOT, '.tmp');
+/** Per-run temp root: set by `tests/global-setup.ts`, else one for a file run without it. */
+export const TMP = process.env[TMP_VAR] ?? path.join(ROOT, '.tmp', `run-${process.pid}`);
 
-/** Create a fresh directory under ROOT/.tmp populated with `files` ({ relPath: content }). */
+/** Create a fresh directory under TMP populated with `files` ({ relPath: content }). */
 export async function makeTree(files: Record<string, string> = {}): Promise<string> {
   await fs.mkdir(TMP, { recursive: true });
   const dir = await fs.mkdtemp(path.join(TMP, 't-'));
@@ -49,6 +51,17 @@ export function trackedTrees() {
     },
   };
 }
+
+/** An output stream stand-in that collects what is written. */
+export const sink = () => {
+  const s = {
+    text: '',
+    write(t: string) {
+      s.text += t;
+    },
+  };
+  return s;
+};
 
 /** The error thrown by `fn`; fails if nothing (or a non-Error) is thrown. */
 export function thrown(fn: () => unknown): Error {

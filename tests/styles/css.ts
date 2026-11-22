@@ -81,6 +81,15 @@ export function usedVariables(value: string): string[] {
   return [...value.matchAll(/var\(\s*(--[\w-]+)/g)].map((m) => m[1] ?? '');
 }
 
+/** The rules of `file`; a sheet that is missing or has no rules fails instead of reading as empty. */
+export function sheet(sheets: Readonly<Record<string, readonly Rule[]>>, file: string): Rule[] {
+  const rules = sheets[file];
+  if (!rules?.length) {
+    throw new Error(`stylesheet ${file} is missing or has no rules`);
+  }
+  return [...rules];
+}
+
 export async function styleFiles(): Promise<string[]> {
   return (await fs.readdir(STYLES)).filter((f) => f.endsWith('.css')).sort();
 }

@@ -52,6 +52,14 @@ node src/tools/init-site.ts [--site <dir>]
 
 Copies `site.sample/` to the site directory, naming `site.yaml.sample` `site.yaml`. It refuses a directory that is not empty.
 
+### Mutate
+
+```text
+node src/tools/mutate.ts [--jobs <n>] [--timeout <s>] <path>...
+```
+
+A development tool, not part of `make check`. Each path is a file or directory under `src/` (default: all of it); no TypeScript source there is a usage error (exit code 2). Before mutating, it runs each test selection once on the unmutated copy and skips the changes of one that fails (or times out), writing `skipped: tests fail without mutation: <selection> (<n> mutants)` to stderr. It then changes one line at a time, every occurrence of an operator on the line separately, runs the tests of that file against the change (the test file of the same name below `tests/`, else the nearest enclosing test directory that exists, else all tests) and prints `SURVIVED <file>:<line> [<operator>] -> <changed line>` for each change the tests did not catch, then `N of M survived` (M counts the changes that ran), with `; K skipped` appended when any were skipped. A survivor marks a possible gap in the tests, to be triaged: some are equivalent mutants. Each job works in its own copy of the project under `.tmp/mutate-<pid>/`; `--jobs` defaults to half the processors, `--timeout` (seconds per test run, default 120) counts a run that hangs as caught and writes `timeout: <file>:<line> [<operator>]` to stderr. Exit code 0 means the run completed with nothing skipped, not that nothing survived; 1 means a test selection was skipped (or the run failed or was interrupted).
+
 ## Make targets
 
 | Target | Does |
@@ -62,12 +70,13 @@ Copies `site.sample/` to the site directory, naming `site.yaml.sample` `site.yam
 | `make serve` | build, publish, then serve |
 | `make init-site` | create the site directory from the sample |
 | `make docs` | regenerate `site.schema.json` and `docs/site-yaml.md` from the configuration schema |
+| `make mutate [MUTATE='<args>']` | mutation testing of `src/` or of the given paths, with the tool's flags; slow |
 | `make test`, `make coverage` | the test suite, with or without coverage |
 | `make typecheck`, `make lint`, `make format` | the TypeScript checks, Biome lint, Biome format |
 | `make check` | lint, type checks and tests with coverage; what CI runs |
 | `make clean` | remove `build/`, `publish/`, `coverage/`, `.tmp/` |
 
-Variables: `SITE=<dir>`, `OUT=<dir>`, `PUBLISH=<dir>`; `DRAFTS=1` and `PORT=<n>` reach the commands through the environment, as do `SITE_DIR`, `OUT_DIR` and `PUBLISH_DIR`.
+Variables: `SITE=<dir>`, `OUT=<dir>`, `PUBLISH=<dir>`, `MUTATE=<args>`; `DRAFTS=1` and `PORT=<n>` reach the commands through the environment, as do `SITE_DIR`, `OUT_DIR` and `PUBLISH_DIR`.
 
 ```sh
 make serve SITE=~/websites/mine PORT=9000

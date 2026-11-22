@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -104,6 +105,19 @@ describe('builtWithPackages (other entries)', () => {
     ]);
   });
 
+  it('keeps bundled packages below the project when node_modules is a symlink', async () => {
+    const store = await tree({
+      'dep-a/package.json': JSON.stringify({ name: 'dep-a', main: 'index.js' }),
+      'dep-a/index.js': 'export const a = 1;',
+    });
+    const dir = await tree({ 'entry.ts': 'import { a } from "dep-a"; export { a };' });
+    await fs.symlink(store, path.join(dir, 'node_modules'));
+    const { packageDirs } = await builtWithPackages(path.join(dir, 'entry.ts'));
+    expect(packageDirs.map((d) => path.relative(dir, d))).toContain(
+      path.join('node_modules', 'dep-a'),
+    );
+  });
+
   it('reports esbuild warnings as single lines', async () => {
     const dir = await tree({ 'entry.ts': 'console.log({ a: 1, a: 2 });' });
     const { warnings } = await builtWithPackages(path.join(dir, 'entry.ts'));
@@ -151,6 +165,35 @@ describe('platformPackages', () => {
       path.join('node_modules', '@t', 'mac'),
     ]);
     expect(warnings).toEqual([]);
+  });
+
+  it('keeps platform packages below the package when node_modules is a symlink', async () => {
+    const store = await tree({
+      ...pkg('tool', { '@t/mac': '1' }),
+      ...installed('@t/mac'),
+    });
+    const dir = await tree();
+    await fs.symlink(path.join(store, 'node_modules'), path.join(dir, 'node_modules'));
+    const { dirs } = await platformPackages(path.join(dir, 'node_modules', 'tool'));
+    expect(dirs.map((d) => path.relative(dir, d))).toEqual([
+      path.join('node_modules', '@t', 'mac'),
+    ]);
+  });
+
+  it('looks for platform packages in the parent directories too', async () => {
+    const dir = await tree({
+      ...pkg('tool', { '@t/mac': '1' }),
+      ...installed('@t/mac'),
+    });
+    const nested = path.join(dir, 'node_modules', 'tool', 'node_modules', 'inner');
+    await fs.mkdir(nested, { recursive: true });
+    await fs.writeFile(
+      path.join(nested, 'package.json'),
+      JSON.stringify({ optionalDependencies: { '@t/mac': '1' } }),
+    );
+    expect((await platformPackages(nested)).dirs).toEqual([
+      path.join(dir, 'node_modules', '@t', 'mac'),
+    ]);
   });
 
   it('warns, without failing, when none is installed', async () => {

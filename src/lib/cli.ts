@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { errorMessage } from '../shared/guards.ts';
 import { BUILD, PUBLISH, SITE_DEFAULT } from './paths.ts';
 
@@ -18,6 +19,25 @@ export function parseOrUsage<T>(parse: () => T, usage: string, stderr: Output): 
     stderr.write(`error: ${errorMessage(err)}\n${usage}\n`);
     return undefined;
   }
+}
+
+/** Runs `run` and sets `process.exitCode` when `moduleUrl` is the script Node was started with. */
+export async function runIfMain(
+  moduleUrl: string,
+  run: () => Promise<number>,
+  argv1 = process.argv[1],
+): Promise<void> {
+  if (argv1 && moduleUrl === pathToFileURL(argv1).href) {
+    process.exitCode = await run();
+  }
+}
+
+/** A signal that aborts on SIGINT or SIGTERM, so a CLI can shut down in an orderly way. */
+export function interruptSignal(): AbortSignal {
+  const stop = new AbortController();
+  process.once('SIGINT', () => stop.abort());
+  process.once('SIGTERM', () => stop.abort());
+  return stop.signal;
 }
 
 /** Absolute path of a directory flag, or undefined when the flag is absent. @throws if `value` is empty */

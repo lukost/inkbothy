@@ -9,19 +9,19 @@ import { type Listening, listening, request } from './http.ts';
 const { tree, outFor } = trackedTrees();
 
 /** Types a post may reference besides the generated ones. */
-const POST_ASSETS = [
-  'png',
-  'jpg',
-  'jpeg',
-  'gif',
-  'webp',
-  'avif',
-  'svg',
-  'pdf',
-  'mp4',
-  'webm',
-  'mp3',
-];
+const POST_ASSETS = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  avif: 'image/avif',
+  svg: 'image/svg+xml; charset=utf-8',
+  pdf: 'application/pdf',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mp3: 'audio/mpeg',
+};
 
 describe('media types of a published site', () => {
   let server: Listening;
@@ -32,7 +32,7 @@ describe('media types of a published site', () => {
       'index.md': doc('title: Home\npublished: 2026-01-01'),
       'resume/index.md': doc('title: Resume\npublished: 2026-01-01'),
       'blog/p/index.md': doc('title: Post\npublished: 2026-01-01'),
-      ...Object.fromEntries(POST_ASSETS.map((ext) => [`blog/p/asset.${ext}`, 'x'])),
+      ...Object.fromEntries(Object.keys(POST_ASSETS).map((ext) => [`blog/p/asset.${ext}`, 'x'])),
     });
     const buildDir = outFor(content);
     const publishDir = outFor(content);
@@ -66,12 +66,11 @@ describe('media types of a published site', () => {
     expect(unknown).toEqual([]);
   });
 
-  it('serves the post assets with their own types', async () => {
-    const types = await Promise.all(
-      POST_ASSETS.map(
-        async (ext) => (await request(server.port, `/blog/p/asset.${ext}`)).headers['content-type'],
-      ),
-    );
-    expect(types.every((t) => t !== undefined && t !== 'application/octet-stream')).toBe(true);
+  it('publishes and serves the post assets with their own types', async () => {
+    for (const [ext, type] of Object.entries(POST_ASSETS)) {
+      const reply = await request(server.port, `/blog/p/asset.${ext}`);
+      expect(reply.status, ext).toBe(200);
+      expect(reply.headers['content-type'], ext).toBe(type);
+    }
   });
 });

@@ -1,4 +1,4 @@
-.PHONY: install build publish serve init-site docs test coverage typecheck lint format check clean
+.PHONY: install build publish serve init-site docs mutate test coverage typecheck lint format check clean
 
 install:
 	npm ci
@@ -23,6 +23,11 @@ init-site:
 # Regenerates site.sample/site.schema.json and docs/site-yaml.md from the configuration schema.
 docs:
 	node src/tools/gen-docs.ts
+
+# Mutation testing, not part of `make check` and slow. MUTATE holds the arguments of the tool:
+# files or directories under src/ (default: all of src/), --jobs <n>, --timeout <s>.
+mutate:
+	node src/tools/mutate.ts $(MUTATE)
 
 test:
 	npm test

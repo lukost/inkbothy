@@ -63,6 +63,22 @@ describe('copy', () => {
     expect($(el, 'figure > button.copy-code')).toBeTruthy();
   });
 
+  it('does nothing when the code is removed after the button was added', async () => {
+    const writeText = vi.fn(async () => undefined);
+    setClipboard({ writeText });
+    const el = document.createElement('div');
+    el.innerHTML = '<figure class="code-block"><pre><code>a</code></pre></figure>';
+    copy.run(el);
+    el.querySelector('pre')?.remove();
+    const button = $(el, 'button.copy-code');
+    button.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(writeText).not.toHaveBeenCalled();
+    expect(button.textContent).toBe('Copy');
+    expect($(el, '[role="status"]').textContent).toBe('');
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('names the button after the block title, language or nothing', () => {
     setClipboard({ writeText: vi.fn() });
     const root = document.createElement('div');

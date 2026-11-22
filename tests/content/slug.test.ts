@@ -17,6 +17,7 @@ describe('slugify', () => {
     ['C', 'c'],
     ['Modern C++20', 'modern-cpp20'],
     ['abc++', 'abc'],
+    ['abc#', 'abc'],
     ['i.MX8', 'i-mx8'],
     ['RTOS/Zephyr', 'rtos-zephyr'],
     ['2026', '2026'],

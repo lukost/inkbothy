@@ -61,8 +61,13 @@ describe('createShikiHighlighter', () => {
   });
 
   it('keeps hostile code inert', async () => {
-    const out = await highlightCode('<script>alert(1)</script>', 'javascript');
-    expect(out).not.toContain('<script>');
+    const doc = new DOMParser().parseFromString(
+      await highlightCode('</pre><script>alert(1)</script>', 'javascript'),
+      'text/html',
+    );
+    expect(doc.querySelector('script')).toBeNull();
+    expect(doc.querySelectorAll('pre')).toHaveLength(1);
+    expect(doc.querySelector('pre')?.textContent).toBe('</pre><script>alert(1)</script>');
   });
 
   // Loads every grammar for real; slow under a parallel, instrumented run.

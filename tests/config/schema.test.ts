@@ -65,6 +65,19 @@ describe('siteSchema', () => {
     ]);
   });
 
+  it('accepts a zero home count, a zero initial count and a batch of one', () => {
+    const parsed = siteSchema.parse({
+      ...valid,
+      home: [{ latest: 'blog', count: 0 }],
+      sections: {
+        ...valid.sections,
+        blog: { ...valid.sections.blog, stream: { initial: 0, batch: 1 } },
+      },
+    });
+    expect(parsed.home).toEqual([{ kind: 'latest', section: 'blog', count: 0 }]);
+    expect(parsed.sections.blog).toMatchObject({ stream: { initial: 0, batch: 1 } });
+  });
+
   it('accepts the smallest site', () => {
     const minimal = { ...valid, sections: {}, menu: [], home: [] };
     expect(siteSchema.parse(minimal).sections).toEqual({});

@@ -263,7 +263,9 @@ describe('mermaid', () => {
         throw new Error('network');
       });
       const enhancer = await load();
-      await expect(enhancer.run(page('graph'))).rejects.toThrow();
+      await expect(enhancer.run(page('graph'))).rejects.toMatchObject({
+        cause: { message: 'network' },
+      });
       mockMermaid();
       const root = page('graph');
       await enhancer.run(root);

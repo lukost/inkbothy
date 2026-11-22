@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { ROOT } from '../../src/lib/paths.ts';
 import { required } from '../../src/shared/guards.ts';
 import { RAIL_QUERY, WIDE_QUERY } from '../../src/shared/ui-state.ts';
-import { parseRules, type Rule, readStyle, styleFiles } from './css.ts';
+import { parseRules, type Rule, readStyle, sheet, styleFiles } from './css.ts';
 
 const WIDE = `@media ${WIDE_QUERY}`;
 const RAIL = `@media ${RAIL_QUERY}`;
@@ -30,11 +30,12 @@ const sheets: Record<string, Rule[]> = {};
 beforeAll(async () => {
   for (const name of files) {
     sheets[name] = parseRules(await readStyle(`${name}.css`));
+    sheet(sheets, name);
   }
 });
 
 const rulesOf = (file: string, selector: string): Rule[] =>
-  (sheets[file] ?? []).filter((r) => r.selector === selector);
+  sheet(sheets, file).filter((r) => r.selector === selector);
 
 /** The one rule with exactly this selector (and at-rule context), or a failed expectation. */
 function rule(file: string, selector: string, at: readonly string[] = []): Rule {
@@ -50,7 +51,9 @@ const emValue = (query: string) => Number(/(?:min|max)-width: ([\d.]+)em/.exec(q
 describe('breakpoint', () => {
   it('uses only the shared queries for widths, and wide and narrow are exact complements', () => {
     const preludes = new Set(
-      (sheets.layout ?? []).flatMap((r) => r.at).filter((a) => /width/.test(a)),
+      sheet(sheets, 'layout')
+        .flatMap((r) => r.at)
+        .filter((a) => /width/.test(a)),
     );
     expect([...preludes].sort()).toEqual([NARROW, RAIL, WIDE].sort());
     const min = emValue(WIDE_QUERY);
@@ -105,7 +108,7 @@ describe('view transitions', () => {
     expect(decl(rule('layout', '::view-transition-new(topbar)', [MOTION]), 'animation')).toBe(
       'none',
     );
-    for (const r of sheets.layout ?? []) {
+    for (const r of sheet(sheets, 'layout')) {
       if (r.selector.includes('::view-transition')) {
         expect(r.at, r.selector).toEqual([MOTION]);
       }
@@ -113,7 +116,7 @@ describe('view transitions', () => {
   });
 
   it('does not name the sidebar below the wide breakpoint, where it is stacked or a drawer', () => {
-    const narrowOrUnconditional = (sheets.layout ?? []).filter(
+    const narrowOrUnconditional = sheet(sheets, 'layout').filter(
       (r) => r.declarations.has('view-transition-name') && !r.at.includes(WIDE),
     );
     expect(narrowOrUnconditional.map((r) => r.selector)).toEqual(['.topbar']);
@@ -173,7 +176,9 @@ describe('hidden sidebar', () => {
     expect(
       decl(rule('layout', ':root:not([data-theme="dark"]) .icon-dark', [osLight]), 'display'),
     ).toBe('none');
-    expect((sheets.layout ?? []).filter((r) => /icon-auto|theme-now/.test(r.selector))).toEqual([]);
+    expect(sheet(sheets, 'layout').filter((r) => /icon-auto|theme-now/.test(r.selector))).toEqual(
+      [],
+    );
   });
 });
 
@@ -187,7 +192,7 @@ describe('navigation survives a failed script', () => {
     /\.sidebar(?![\w-])|\.sidebar-body|\.site-menu/.test(r.selector);
 
   it('only hides or moves the sidebar behind .js, which the head script removes if the module fails', () => {
-    const offenders = (sheets.layout ?? [])
+    const offenders = sheet(sheets, 'layout')
       .filter((r) => targetsSidebar(r) && hides(r))
       .filter((r) => !/\.js(?![\w-])/.test(r.selector))
       // On wide viewports the sidebar is a visible column; folding is data-sidebar driven.
@@ -230,7 +235,7 @@ describe('navigation survives a failed script', () => {
     expect(decl(rule('layout', '.js .topbar-tools'), 'display')).toBe('flex');
     expect(decl(rule('layout', '.topbar-tools button'), 'display')).toBe('inline-flex');
     expect(decl(rule('layout', '.js .menu-button'), 'display')).toBe('inline-flex');
-    const menuRules = (sheets.layout ?? []).filter((r) => /\.menu-button/.test(r.selector));
+    const menuRules = sheet(sheets, 'layout').filter((r) => /\.menu-button/.test(r.selector));
     expect(menuRules.filter((r) => r.at.length > 0)).toEqual([]);
   });
 
@@ -313,7 +318,7 @@ describe('top bar and anchors', () => {
   });
 
   it('never hides, moves or animates away on scroll', () => {
-    for (const r of sheets.layout ?? []) {
+    for (const r of sheet(sheets, 'layout')) {
       if (r.selector === '.topbar') {
         expect(r.declarations.has('transform'), r.selector).toBe(false);
         expect(r.declarations.has('translate'), r.selector).toBe(false);
@@ -349,12 +354,12 @@ describe('top bar and anchors', () => {
   });
 
   it('shows the site title as a home link beside the menu button at every width, scripted or not', () => {
-    const hiding = (sheets.layout ?? []).filter(
+    const hiding = sheet(sheets, 'layout').filter(
       (r) => /\.site-title|\.topbar-start/.test(r.selector) && decl(r, 'display') === 'none',
     );
     expect(hiding).toEqual([]);
     expect(
-      (sheets.layout ?? []).filter((r) => /sidebar-bar|sidebar-collapse/.test(r.selector)),
+      sheet(sheets, 'layout').filter((r) => /sidebar-bar|sidebar-collapse/.test(r.selector)),
     ).toEqual([]);
   });
 
@@ -362,7 +367,7 @@ describe('top bar and anchors', () => {
     const button = rule('layout', '.topbar button');
     expect(decl(button, 'min-width')).toBe(decl(button, 'height'));
     const base = required(
-      (sheets.base ?? []).find((r) => r.selector === 'button'),
+      sheet(sheets, 'base').find((r) => r.selector === 'button'),
       'button rule',
     );
     expect(decl(base, 'border')).toBe('1px solid var(--control-border)');
@@ -397,14 +402,14 @@ describe('top bar and anchors', () => {
     expect(rulesOf('layout', 'html')).toHaveLength(1);
     expect(decl(rule('layout', 'html'), 'scroll-padding-top')).toContain('var(--topbar-h)');
     expect(
-      (sheets.layout ?? []).filter(
+      sheet(sheets, 'layout').filter(
         (r) => r.at.length > 0 && r.declarations.has('scroll-padding-top'),
       ),
     ).toEqual([]);
   });
 
   it('has no element-level scroll-margin that would stack with it', () => {
-    expect((sheets.markdown ?? []).some((r) => r.declarations.has('scroll-margin-top'))).toBe(
+    expect(sheet(sheets, 'markdown').some((r) => r.declarations.has('scroll-margin-top'))).toBe(
       false,
     );
   });
@@ -502,7 +507,7 @@ describe('wide layout', () => {
 
   it('does not cap blocks inside the column, which is the one place the width is decided', () => {
     expect(
-      (sheets.markdown ?? []).filter(
+      sheet(sheets, 'markdown').filter(
         (r) => r.declarations.has('max-width') && /md-content/.test(r.selector),
       ),
     ).toEqual([]);
@@ -531,7 +536,7 @@ describe('wide layout', () => {
     expect(decl(toc, 'position')).toBe('sticky');
     expect(decl(toc, 'overflow-y')).toBe('auto');
     expect(decl(toc, 'align-self')).toBe('start');
-    for (const r of sheets.layout ?? []) {
+    for (const r of sheet(sheets, 'layout')) {
       if (/article-single/.test(r.selector)) {
         expect(r.at, r.selector).toEqual([RAIL]);
       }
@@ -580,7 +585,7 @@ describe('scrolling and overflow', () => {
   });
 
   it('does not clip the body horizontally', () => {
-    for (const r of sheets.base ?? []) {
+    for (const r of sheet(sheets, 'base')) {
       if (r.selector === 'body') {
         expect(r.declarations.has('overflow-x')).toBe(false);
         expect(r.declarations.has('overflow')).toBe(false);
@@ -695,7 +700,7 @@ describe('code blocks', () => {
     const before = rule('code', '.line-numbers .line::before');
     expect(decl(before, 'counter-increment')).toBe('line');
     expect(decl(before, 'content')).toBe('counter(line)');
-    for (const r of sheets.code ?? []) {
+    for (const r of sheet(sheets, 'code')) {
       if (r.selector.includes('.highlighted')) {
         expect(r.declarations.has('counter-increment'), r.selector).toBe(false);
         expect(r.declarations.has('counter-reset'), r.selector).toBe(false);
@@ -713,7 +718,7 @@ describe('code blocks', () => {
   });
 
   it('scopes figure caption spacing so it cannot reach the code header bar', () => {
-    const generic = (sheets.markdown ?? []).filter((r) => /figcaption/.test(r.selector));
+    const generic = sheet(sheets, 'markdown').filter((r) => /figcaption/.test(r.selector));
     expect(generic.map((r) => r.selector)).toEqual([
       '.md-content figure:not(.code-block) > figcaption',
     ]);
@@ -727,7 +732,7 @@ const HHEA = {
 } as const;
 
 const fontFaces = (family: string): Rule[] =>
-  (sheets.fonts ?? []).filter(
+  sheet(sheets, 'fonts').filter(
     (r) => r.selector === '@font-face' && normalise(decl(r, 'font-family')) === family,
   );
 
@@ -795,7 +800,7 @@ describe('fonts', () => {
       (value ?? '').replaceAll(/\s/g, '').replaceAll("'", '"');
     const format = (src: string | undefined) => /format\(([^)]*)\)/.exec(src ?? '')?.[1];
     const fileOf = (r: Rule) => /\/([\w-]+\.woff2)\)/.exec(decl(r, 'src') ?? '')?.[1];
-    const bundled = (sheets.fonts ?? []).filter(
+    const bundled = sheet(sheets, 'fonts').filter(
       (r) => r.selector === '@font-face' && /url\(.*fontsource-variable/.test(decl(r, 'src') ?? ''),
     );
     expect(bundled).toHaveLength(8);
@@ -831,7 +836,7 @@ describe('fonts', () => {
   });
 
   it('swaps every real face in', () => {
-    const real = (sheets.fonts ?? []).filter(
+    const real = sheet(sheets, 'fonts').filter(
       (r) => r.selector === '@font-face' && /url\(/.test(decl(r, 'src') ?? ''),
     );
     expect(real).toHaveLength(11);

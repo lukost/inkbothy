@@ -6,7 +6,7 @@ import { main, parseCli, publish } from '../../src/generator/publish.ts';
 import { contentSecurityPolicy } from '../../src/lib/http-policy.ts';
 import { BUILD, PUBLISH, ROOT, SITE_DEFAULT, SRC } from '../../src/lib/paths.ts';
 import { createHandler } from '../../src/server/serve.ts';
-import { trackedTrees } from '../helpers.ts';
+import { sink, trackedTrees } from '../helpers.ts';
 import { listening, request } from '../server/http.ts';
 
 const { tree, outFor } = trackedTrees();
@@ -203,6 +203,18 @@ describe('publish atomicity', () => {
     expect(await leftovers(dirs.publishDir)).toEqual([]);
   });
 
+  it('reports a failure to keep the time of an unchanged file, leaving the old publish in place', async () => {
+    const dirs = await published({ 'index.html': 'same', 'a.html': 'old a' });
+    await fs.writeFile(path.join(dirs.buildDir, 'a.html'), 'new a');
+    vi.spyOn(fs, 'utimes').mockRejectedValue(
+      Object.assign(new Error('EPERM: operation not permitted'), { code: 'EPERM' }),
+    );
+    await expect(publish(dirs)).rejects.toThrow('EPERM');
+    expect(await fs.readFile(path.join(dirs.publishDir, 'index.html'), 'utf8')).toBe('same');
+    expect(await fs.readFile(path.join(dirs.publishDir, 'a.html'), 'utf8')).toBe('old a');
+    expect(await leftovers(dirs.publishDir)).toEqual([]);
+  });
+
   it('restores the old publish when moving the new one into place fails', async () => {
     const dirs = await published({ 'index.html': 'old' });
     await fs.writeFile(path.join(dirs.buildDir, 'index.html'), 'new');
@@ -388,16 +400,6 @@ describe('parsePublishManifest', () => {
 });
 
 describe('publish cli', () => {
-  const sink = () => {
-    const s = {
-      text: '',
-      write(t: string) {
-        s.text += t;
-      },
-    };
-    return s;
-  };
-
   it('parses directory flags to absolute paths and defaults the rest', () => {
     expect(parseCli([], {})).toEqual({
       siteDir: SITE_DEFAULT,

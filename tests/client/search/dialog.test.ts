@@ -90,6 +90,9 @@ describe('structure', () => {
     expect(box.getAttribute('aria-autocomplete')).toBe('list');
     expect(box.getAttribute('aria-controls')).toBe($(document, '[role="listbox"]').id);
     expect(box.getAttribute('aria-expanded')).toBe('false');
+    expect(box.getAttribute('aria-label')).toBe('Search');
+    expect(box.spellcheck).toBe(false);
+    expect($(document, '[role="listbox"]').getAttribute('aria-label')).toBe('Results');
     expect(box.hasAttribute('aria-activedescendant')).toBe(false);
     const groups = $$(document, '[role="group"]');
     expect(
@@ -196,6 +199,20 @@ describe('opening and closing', () => {
     pointer(dialogEl(), 'click', 100, 150);
     pointer(dialogEl(), 'pointerdown', 300, 300);
     pointer(dialogEl(), 'click', 300, 300);
+    pointer(dialogEl(), 'pointerdown', 150, 100);
+    pointer(dialogEl(), 'click', 150, 100);
+    expect(dialogEl().open).toBe(true);
+  });
+
+  it('does not close for a click without a press after it was closed from the backdrop', async () => {
+    const dialog = mount();
+    await open(dialog);
+    boxAt(100, 100, 300, 300);
+    pointer(dialogEl(), 'pointerdown', ...BACKDROP);
+    pointer(dialogEl(), 'click', ...BACKDROP);
+    expect(dialogEl().open).toBe(false);
+    await open(dialog);
+    pointer(dialogEl(), 'click', ...BACKDROP);
     expect(dialogEl().open).toBe(true);
   });
 
@@ -269,6 +286,16 @@ describe('opening and closing', () => {
     expect(status()).toBe('');
   });
 
+  it('never announces a count that was still pending when it closed', async () => {
+    const dialog = mount();
+    await open(dialog);
+    await type('kernel');
+    expect(options()).toHaveLength(4);
+    dialogEl().close();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(status()).toBe('');
+  });
+
   it('drops a search that was waiting for the index when it closes', async () => {
     let resolve: (index: LoadedIndex) => void = () => undefined;
     const dialog = mount(() => new Promise((r) => (resolve = r)));
@@ -280,6 +307,20 @@ describe('opening and closing', () => {
     expect(options()).toHaveLength(0);
   });
 
+  it('does not return focus to an opener that is not an HTML element', async () => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('tabindex', '0');
+    document.body.append(svg);
+    svg.focus();
+    expect(document.activeElement).toBe(svg);
+    const dialog = mount();
+    await open(dialog);
+    expect(document.activeElement).toBe(input());
+    dialogEl().close();
+    // Closing moves focus only to a valid opener; here it stays where the dialog put it.
+    expect(document.activeElement).toBe(input());
+  });
+
   it('does not refocus a stale opener on a later close event', async () => {
     const dialog = mount();
     await open(dialog);
@@ -289,6 +330,30 @@ describe('opening and closing', () => {
     other.focus();
     dialogEl().dispatchEvent(new Event('close'));
     expect(document.activeElement).toBe(other);
+  });
+
+  it('renders nothing when disposed while the debounce is pending', async () => {
+    const dialog = mount();
+    await open(dialog);
+    const list = $(document, '.search-results');
+    const line = $(document, '[role="status"]');
+    input().value = 'kernel';
+    input().dispatchEvent(new Event('input'));
+    dialog.dispose();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(list.children).toHaveLength(0);
+    expect(line.textContent).toBe('');
+  });
+
+  it('fetches nothing when disposed while the debounce is pending', async () => {
+    const load = vi.fn<() => Promise<LoadedIndex>>().mockRejectedValue(new Error('offline'));
+    const dialog = mount(load);
+    await open(dialog);
+    input().value = 'kernel';
+    input().dispatchEvent(new Event('input'));
+    dialog.dispose();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(load).toHaveBeenCalledTimes(1);
   });
 
   it('removes itself on dispose, and stops reacting', async () => {
@@ -335,6 +400,16 @@ describe('status', () => {
     await settle();
     expect(status()).toBe('No results');
     expect(options()).toHaveLength(0);
+  });
+
+  it('expands the listbox for one hit and collapses it for none', async () => {
+    await open(mount());
+    await type('sched');
+    expect(options()).toHaveLength(1);
+    expect(input().getAttribute('aria-expanded')).toBe('true');
+    await type('xyzzyplugh');
+    expect(options()).toHaveLength(0);
+    expect(input().getAttribute('aria-expanded')).toBe('false');
   });
 
   it('goes quiet again when the query is cleared', async () => {
@@ -416,6 +491,14 @@ describe('status announcements', () => {
     reject(new Error('late'));
     await flush();
     expect(status()).toBe('Loading…');
+  });
+
+  it('does not let a pending count overwrite the status of a cleared query', async () => {
+    await open(mount());
+    await type('kernel');
+    await type('');
+    await settle();
+    expect(status()).toBe('');
   });
 
   it('clears the status at once when the query is cleared', async () => {
@@ -638,6 +721,18 @@ describe('keyboard', () => {
     expect(resultTitles()).toEqual(['Tracer', 'Notes']);
   });
 
+  it('searches once when Enter comes before the debounce fires', async () => {
+    captureNavigation();
+    await withResults();
+    const render = vi.spyOn(HTMLUListElement.prototype, 'replaceChildren');
+    input().value = 'tracer';
+    input().dispatchEvent(new Event('input'));
+    press('Enter');
+    await vi.advanceTimersByTimeAsync(500);
+    expect(render).toHaveBeenCalledTimes(1);
+    render.mockRestore();
+  });
+
   it('forwards Ctrl, Meta and Shift to the link when Enter opens it', async () => {
     const seen: MouseEvent[] = [];
     document.addEventListener('click', (e) => {
@@ -786,6 +881,8 @@ describe('persistence', () => {
     expect(chip('tooling').getAttribute('aria-pressed')).toBe('true');
     expect(resultTitles()).toEqual(before);
     expect(document.activeElement).toBe(input());
+    expect(input().selectionStart).toBe(0);
+    expect(input().selectionEnd).toBe('kernel'.length);
   });
 
   it('loads the index once, not for every keystroke or filter', async () => {

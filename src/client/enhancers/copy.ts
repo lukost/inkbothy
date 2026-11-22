@@ -13,6 +13,11 @@ function buttonName(figure: Element): string {
   return what ? `Copy code: ${what}` : 'Copy code';
 }
 
+/**
+ * Adds a copy button and its status message to the caption of `figure` (to the figure itself when it
+ * has none). A click writes the text of the figure's `pre` to `clipboard` and shows `Copied` or
+ * `Copy failed` on both for `RESET_MS`.
+ */
 function addButton(figure: Element, clipboard: Clipboard): void {
   const button = document.createElement('button');
   button.type = 'button';
@@ -32,8 +37,12 @@ function addButton(figure: Element, clipboard: Clipboard): void {
     }, RESET_MS);
   };
   button.addEventListener('click', async () => {
+    const pre = figure.querySelector('pre');
+    if (!pre) {
+      return;
+    }
     try {
-      await clipboard.writeText(figure.querySelector('pre')?.textContent ?? '');
+      await clipboard.writeText(pre.textContent);
       flash('Copied');
     } catch {
       flash('Copy failed');

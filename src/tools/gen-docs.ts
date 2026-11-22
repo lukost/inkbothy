@@ -1,9 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
 import { siteSchema } from '../config/schema.ts';
 import { RESERVED_ROOT_SLUGS } from '../content/slug.ts';
+import { runIfMain } from '../lib/cli.ts';
 import { DOCS, SITE_SAMPLE } from '../lib/paths.ts';
 
 type Schema = z.core.JSONSchema.JSONSchema;
@@ -143,6 +143,7 @@ export async function main(
   await fs.writeFile(referenceFile, referenceMarkdown());
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+await runIfMain(import.meta.url, async () => {
   await main();
-}
+  return 0;
+});

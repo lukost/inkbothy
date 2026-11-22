@@ -85,7 +85,9 @@ describe('splitMatches', () => {
   });
 
   it('never yields an empty segment', () => {
-    for (const s of splitMatches('kernel kernel', ['kernel'])) {
+    const parts = splitMatches('kernel kernel', ['kernel']);
+    expect(parts.length).toBeGreaterThan(0);
+    for (const s of parts) {
       expect(s.text).not.toBe('');
     }
   });

@@ -102,10 +102,26 @@ describe('renderAttributions', () => {
   });
 
   it('escapes hostile metadata', () => {
-    const hostile = entry({ name: '<img src=x onerror=alert(1)>', author: '"><script>' });
-    const out = String(renderAttributions([hostile], [hostile]));
-    expect(out).not.toContain('<img');
-    expect(out).not.toContain('<script>');
+    const hostile = '"><img src=x onerror=alert(1)><b>x</b>';
+    const linked = entry({
+      name: hostile,
+      version: hostile,
+      author: hostile,
+      url: hostile,
+      license: hostile,
+      licenseFile: '/x',
+    });
+    const plain = entry({ name: hostile, version: hostile, author: hostile, license: hostile });
+    const el = dom(renderAttributions([linked, plain], [linked, plain]));
+    expect($$(el, 'img, b, [onerror]')).toEqual([]);
+    expect($$(el, 'li')).toHaveLength(4);
+    expect($$(el, 'strong a').map((a) => a.getAttribute('href'))).toEqual([hostile, hostile]);
+    expect($$(el, '.attribution-license a').map((a) => a.textContent)).toEqual([hostile, hostile]);
+    for (const li of $$(el, 'li')) {
+      expect($(li, '.attribution-author').textContent).toBe(`by ${hostile}`);
+      expect($(li, '.attribution-license').textContent).toBe(`Licence: ${hostile}`);
+      expect($(li, 'strong').textContent).toContain(hostile);
+    }
   });
 
   it('says so when a section is empty', () => {

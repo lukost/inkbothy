@@ -11,7 +11,18 @@ import { SEARCH_INDEX_FILE } from '../../src/generator/search.ts';
 import { contentSecurityPolicy } from '../../src/lib/http-policy.ts';
 import { BUILD, DATA, DOCS, ROOT, SITE_DEFAULT, SITE_SAMPLE, SRC } from '../../src/lib/paths.ts';
 import type { BuildOptions, BuildResult } from '../../src/types.ts';
-import { $, $$, doc, dom, parseHtml, siteConfig, TMP, texts, trackedTrees } from '../helpers.ts';
+import {
+  $,
+  $$,
+  doc,
+  dom,
+  parseHtml,
+  sink,
+  siteConfig,
+  TMP,
+  texts,
+  trackedTrees,
+} from '../helpers.ts';
 
 const config = siteConfig({
   home: [
@@ -190,7 +201,9 @@ describe('build (end-to-end)', () => {
   });
 
   it('renders no page with an unrendered Markdown source', async () => {
-    for (const f of result.files.filter((x) => x.endsWith('index.html'))) {
+    const pages = result.files.filter((x) => x.endsWith('index.html'));
+    expect(pages.length).toBeGreaterThan(0);
+    for (const f of pages) {
       const d = parse(await read(out, f));
       expect(
         d.querySelector('pre.md-source, [data-format], [data-base], [data-doc]'),
@@ -209,11 +222,16 @@ describe('build (end-to-end)', () => {
 
   it('lists every data-fragment URL of a listing in the manifest', async () => {
     const manifest = JSON.parse(await read(out, 'manifest.json'));
-    for (const f of result.files.filter((x) => x.startsWith('blog/') && x.endsWith('index.html'))) {
+    const listings = result.files.filter((x) => x.startsWith('blog/') && x.endsWith('index.html'));
+    expect(listings.length).toBeGreaterThan(0);
+    let fragments = 0;
+    for (const f of listings) {
       for (const li of $$(parse(await read(out, f)), 'li[data-fragment]')) {
         expect(manifest.files, f).toContain(li.dataset.fragment?.slice(1));
+        fragments++;
       }
     }
+    expect(fragments).toBeGreaterThan(0);
   });
 
   it('renders article pages with menu, embedded source and footers', async () => {
@@ -251,7 +269,9 @@ describe('build (end-to-end)', () => {
   });
 
   it('links Attributions from every page footer', async () => {
-    for (const f of result.files.filter((x) => x.endsWith('index.html'))) {
+    const pages = result.files.filter((x) => x.endsWith('index.html'));
+    expect(pages.length).toBeGreaterThan(0);
+    for (const f of pages) {
       const d = parse(await read(out, f));
       expect(d.querySelector('.site-footer a[href="/attributions/"]'), f).not.toBeNull();
     }
@@ -305,6 +325,19 @@ describe('build (end-to-end)', () => {
     const d = parse(await read(outDir, 'attributions/index.html'));
     const khroma = $$(d, '.attribution-list li').find((li) => li.textContent?.includes('khroma'));
     expect(khroma?.textContent).toContain('Licence: MIT');
+  });
+
+  it('lists an extra without a licence file, warns, and copies no licence for it', async () => {
+    const { out, run } = await buildTree(
+      {},
+      {},
+      { 'attributions.yaml': '- { name: Bare, license: MIT }' },
+    );
+    const r = await run();
+    expect(r.warnings).toContain('attributions: Bare has no licence file');
+    const d = parse(await read(out, 'attributions/index.html'));
+    expect($$(d, 'ul.attribution-list li > strong').map((e) => e.textContent)).toContain('Bare');
+    expect(r.files.filter((f) => f.startsWith('attributions/licenses/Bare'))).toEqual([]);
   });
 
   it('ignores data files inside the content tree', async () => {
@@ -756,6 +789,16 @@ describe('build edge cases', () => {
     );
   });
 
+  it('refuses a bundle asset that collides with a generated file', async () => {
+    const { run } = await buildTree({
+      'blog/x/index.md': doc('title: X\npublished: 2026-01-01'),
+      'blog/x/fragment.html': '<p>mine</p>',
+    });
+    await expect(run()).rejects.toThrow(
+      'two sources produce the same output file: blog/x/fragment.html',
+    );
+  });
+
   it('escapes hostile text everywhere it is rendered', async () => {
     const evil = `<script>alert("x")</script>'&`;
     const { out, run } = await buildTree({
@@ -844,16 +887,6 @@ describe('checkOutDir', () => {
 });
 
 describe('cli main', () => {
-  const sink = () => {
-    const s = {
-      text: '',
-      write(t: string) {
-        s.text += t;
-      },
-    };
-    return s;
-  };
-
   it('passes flags through and reports warnings and file count', async () => {
     const stdout = sink();
     const stderr = sink();

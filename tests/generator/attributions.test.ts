@@ -140,6 +140,8 @@ describe('npm packages and extras', () => {
       'empty.yaml': '',
       'strings.yaml': '- just a string',
       'broken.yaml': '- name: [unclosed',
+      'blank-licence.yaml':
+        '- { name: Blank, license: MIT, licenseFile: "" }\n- { name: Num, licenseFile: [a] }',
       'missing-licence.yaml': '- { name: Ghost, license: MIT, licenseFile: nope.txt }',
       'node_modules/nolicence/package.json': pkg({ name: 'nolicence', version: '1.0.0' }),
       'node_modules/nolicence/license': 'MIT text',
@@ -288,6 +290,21 @@ describe('npm packages and extras', () => {
     expect(r.entries).toEqual([]);
     expect(r.warnings).toHaveLength(1);
     expect(r.warnings[0]).toMatch(/^attributions: .*broken\.yaml: .*; ignored$/);
+  });
+
+  it('treats an empty or non-string licenseFile as absent, without a lookup warning', async () => {
+    const r = await readExtras(
+      path.join(root, 'blank-licence.yaml'),
+      path.join(root, '_data/licenses'),
+    );
+    expect(r.entries).toMatchObject([
+      { name: 'Blank', licenseFile: null },
+      { name: 'Num', licenseFile: null },
+    ]);
+    expect(r.warnings).toEqual([
+      'attributions: Blank has no licence file',
+      'attributions: Num has no licence file',
+    ]);
   });
 
   it('drops an extras licence file that does not exist', async () => {

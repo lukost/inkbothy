@@ -19,6 +19,7 @@ const CSP = "default-src 'self'; script-src 'self' 'sha256-x='";
 const BIG = 'abcdefghij'.repeat(300);
 const page = (body: string) =>
   `<!doctype html><html><head><title>t</title></head><body>${body}</body></html>`;
+const SECRET = 'TOP SECRET';
 const SITE: Record<string, string> = {
   'index.html': page('home'),
   'blog/index.html': page('blog'),
@@ -68,7 +69,12 @@ let site = '';
 let server: Listening;
 
 beforeAll(async () => {
-  site = await tree(SITE);
+  // The site is a subdirectory of its tree, next to a file a traversal would reach.
+  const outer = await tree({
+    'secret.txt': SECRET,
+    ...Object.fromEntries(Object.entries(SITE).map(([rel, text]) => [`site/${rel}`, text])),
+  });
+  site = path.join(outer, 'site');
   server = await listening(createHandler({ root: site, csp: () => CSP }));
 });
 afterAll(() => server.close());
@@ -185,15 +191,15 @@ describe('request validation', () => {
   });
 
   it.each([
-    '/../package.json',
-    '/blog/../../package.json',
-    '/%2e%2e/package.json',
-    '/%2E%2E/%2E%2E/etc/passwd',
-    '/..%2fpackage.json',
-    '/blog%2f..%2f..%2fpackage.json',
+    '/../secret.txt',
+    '/blog/../../secret.txt',
+    '/%2e%2e/secret.txt',
+    '/%2E%2E/%2E%2E/secret.txt',
+    '/..%2fsecret.txt',
+    '/blog%2f..%2f..%2fsecret.txt',
     '/blog%2fa%2findex.html',
     '/%2fetc%2fpasswd',
-    '/..%5cpackage.json',
+    '/..%5csecret.txt',
     '/blog%5ca',
     '/%5c',
     '/index.html%00.txt',
@@ -202,6 +208,7 @@ describe('request validation', () => {
     const reply = await get(url);
     expect(reply.status).toBe(404);
     expect(reply.text).toContain('NOT FOUND PAGE');
+    expect(reply.text).not.toContain(SECRET);
     expectSecure(reply, CSP);
   });
 
@@ -527,6 +534,14 @@ describe('live reload', () => {
     expect((await getLive('/fragment-only.html')).text).toBe('<p>no head element</p>');
   });
 
+  it('sends the whole injected page for a Range request, not a 206', async () => {
+    const plain = await get('/');
+    const reply = await getLive('/', { Range: 'bytes=0-3' });
+    expect(reply.status).toBe(200);
+    expect(reply.headers['content-range']).toBeUndefined();
+    expect(reply.text).toBe(plain.text.replace('</head>', `${reloadTag(channel.build)}</head>`));
+  });
+
   it('keeps the validators consistent: the 304 matches the injected ETag', async () => {
     const etag = (await getLive('/')).headers.etag ?? '';
     expect((await getLive('/', { 'If-None-Match': etag })).status).toBe(304);
@@ -795,6 +810,34 @@ describe('symlinks', () => {
     } finally {
       await linked.close();
       await fs.rm(link);
+    }
+  });
+});
+
+describe('unresolvable root', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('serves nothing, answering 404, when the root cannot be resolved, and resolves it again later', async () => {
+    const root = await tree({ 'index.html': page('home') });
+    const realpath = fs.realpath.bind(fs);
+    const failing = vi
+      .spyOn(fs, 'realpath')
+      .mockImplementation(async (file, options) =>
+        file === root ? Promise.reject(new Error('ENOENT')) : realpath(file, options),
+      );
+    const live = await listening(createHandler({ root, csp: () => CSP }));
+    try {
+      const refused = await request(live.port, '/');
+      expect(refused.status).toBe(404);
+      expect(refused.text).not.toContain('home');
+      failing.mockRestore();
+      const served = await request(live.port, '/');
+      expect(served.status).toBe(200);
+      expect(served.text).toContain('home');
+    } finally {
+      await live.close();
     }
   });
 });

@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { required } from '../../src/shared/guards.ts';
 import { DEFAULT_TEXT_SIZE, TEXT_SIZES, type TextSize } from '../../src/shared/ui-state.ts';
-import { parseRules, type Rule, readStyle, styleFiles, usedVariables } from './css.ts';
+import { parseRules, type Rule, readStyle, sheet, styleFiles, usedVariables } from './css.ts';
 
 const sheets: Record<string, Rule[]> = {};
 
@@ -12,7 +12,7 @@ beforeAll(async () => {
 });
 
 const rulesOf = (file: string, selector: string): Rule[] =>
-  (sheets[file] ?? []).filter((r) => r.selector === selector);
+  sheet(sheets, file).filter((r) => r.selector === selector);
 
 function rule(file: string, selector: string, at: readonly string[] = []): Rule {
   const found = rulesOf(file, selector).filter((r) => r.at.join('|') === at.join('|'));
@@ -56,7 +56,9 @@ describe('steps', () => {
   });
 
   it('are exactly the steps the stylesheet declares, besides the default', () => {
-    const declared = (sheets['text-size.css'] ?? []).map((r) => r.selector).sort();
+    const declared = sheet(sheets, 'text-size.css')
+      .map((r) => r.selector)
+      .sort();
     const expected = TEXT_SIZES.filter((s) => s !== DEFAULT_TEXT_SIZE)
       .map((s) => `html[data-text-size="${s}"]`)
       .sort();
@@ -64,7 +66,7 @@ describe('steps', () => {
   });
 
   it('declare nothing but the two text-size tokens, at no media condition', () => {
-    for (const r of sheets['text-size.css'] ?? []) {
+    for (const r of sheet(sheets, 'text-size.css')) {
       expect([...r.declarations.keys()].sort(), r.selector).toEqual([
         '--content-leading',
         '--content-scale',
@@ -163,12 +165,21 @@ describe('column width', () => {
 
   it('is not capped by a per-block width in the article content', () => {
     for (const file of ['markdown.css', 'article.css']) {
-      for (const r of sheets[file] ?? []) {
+      for (const r of sheet(sheets, file)) {
         expect(
           r.declarations.has('max-width') && r.selector.includes('md-content'),
           r.selector,
         ).toBe(false);
       }
+    }
+  });
+
+  it('does not depend on the text size: no step declares anything else', () => {
+    const column = rule('layout.css', '.column');
+    expect(decl(column, 'flex')).not.toContain('--content-');
+    expect(decl(column, 'min-width')).toBe('0');
+    for (const r of sheet(sheets, 'text-size.css')) {
+      expect([...r.declarations.keys()].every((k) => k.startsWith('--content-'))).toBe(true);
     }
   });
 });
@@ -194,13 +205,13 @@ describe('scope', () => {
 
   it('leaves the chrome at fixed sizes: the top bar and menu declare no scaled size', () => {
     for (const file of ['menu.css', 'search.css']) {
-      for (const r of sheets[file] ?? []) {
+      for (const r of sheet(sheets, file)) {
         for (const value of r.declarations.values()) {
           expect(value, `${file}: ${r.selector}`).not.toMatch(/--content-/);
         }
       }
     }
-    for (const r of sheets['layout.css'] ?? []) {
+    for (const r of sheet(sheets, 'layout.css')) {
       for (const value of r.declarations.values()) {
         if (r.selector !== '.column') {
           expect(value, `layout.css: ${r.selector}`).not.toMatch(/--content-/);
@@ -232,7 +243,7 @@ describe('scope', () => {
   it('declares no rem font size or spacing in the content stylesheets, except grid track widths', () => {
     const rem: string[] = [];
     for (const file of ['article.css', 'cards.css', 'code.css', 'markdown.css', 'resume.css']) {
-      for (const r of sheets[file] ?? []) {
+      for (const r of sheet(sheets, file)) {
         for (const [name, value] of r.declarations) {
           if (/\drem\b/.test(value) && name !== 'grid-template-columns') {
             rem.push(`${file}: ${r.selector} ${name}`);
@@ -245,7 +256,7 @@ describe('scope', () => {
 
   it('spaces the parts of the article in em, so the gaps tighten with the text', () => {
     const fixed: string[] = [];
-    for (const r of sheets['article.css'] ?? []) {
+    for (const r of sheet(sheets, 'article.css')) {
       if (
         !/^\.article-(dates|categories|tags|footer|updates|copyright|header)|^\.draft-banner/.test(
           r.selector,
@@ -268,7 +279,7 @@ describe('type scale', () => {
 
   it('keeps every heading in em, wherever it sits in the article', () => {
     for (const file of ['base.css', 'article.css', 'markdown.css']) {
-      for (const r of sheets[file] ?? []) {
+      for (const r of sheet(sheets, file)) {
         if (/(^|[ >,])h[1-6]\b/.test(r.selector) && r.declarations.has('font-size')) {
           expect(decl(r, 'font-size'), `${file}: ${r.selector}`).toMatch(/em$/);
         }
@@ -348,17 +359,6 @@ describe('computed sizes', () => {
       required(decl(rule('resume.css', '.resume-header .page-title'), 'margin-bottom'), 'gap'),
     );
     expect(gap * title).toBeCloseTo(0.25, 2);
-  });
-});
-
-describe('column width', () => {
-  it('does not depend on the text size: no step declares anything else', () => {
-    const column = rule('layout.css', '.column');
-    expect(decl(column, 'flex')).not.toContain('--content-');
-    expect(decl(column, 'min-width')).toBe('0');
-    for (const r of sheets['text-size.css'] ?? []) {
-      expect([...r.declarations.keys()].every((k) => k.startsWith('--content-'))).toBe(true);
-    }
   });
 });
 

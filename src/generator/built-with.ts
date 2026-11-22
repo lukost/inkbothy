@@ -1,5 +1,4 @@
 import fs from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { build } from 'esbuild';
 import { ROOT, SRC } from '../lib/paths.ts';
@@ -22,6 +21,26 @@ export const GENERATOR_ENTRY = path.join(SRC, 'generator', 'cli.ts');
 const EXTERNAL = ['esbuild'] as const;
 
 /**
+ * Where `dep` is installed as seen from `from`: the nearest `node_modules/<dep>` along the parent
+ * directories, as Node looks it up, but without resolving symlinks (so the path stays below
+ * `from`'s own `node_modules`, even when that one is a symlink). Null when not installed.
+ */
+async function installedDir(from: string, dep: string): Promise<string | null> {
+  for (let dir = from; ; dir = path.dirname(dir)) {
+    const candidate = path.join(dir, 'node_modules', dep);
+    try {
+      await fs.access(path.join(candidate, 'package.json'));
+      return candidate;
+    } catch {
+      // not here; try the parent directory
+    }
+    if (path.dirname(dir) === dir) {
+      return null;
+    }
+  }
+}
+
+/**
  * Installed platform binary packages of the npm package at `packageDir`: those of its
  * `optionalDependencies` that resolve from there (one per machine). Problems become warnings.
  */
@@ -40,14 +59,9 @@ export async function platformPackages(
   } catch (err) {
     return { dirs: [], warnings: [`attributions: cannot read ${manifest}: ${errorMessage(err)}`] };
   }
-  const resolve = createRequire(manifest).resolve;
-  const dirs = optional.flatMap((dep) => {
-    try {
-      return [path.dirname(resolve(`${dep}/package.json`))];
-    } catch {
-      return [];
-    }
-  });
+  const dirs = (await Promise.all(optional.map((dep) => installedDir(packageDir, dep)))).flatMap(
+    (dir) => (dir === null ? [] : [dir]),
+  );
   const warnings =
     optional.length > 0 && dirs.length === 0
       ? [`attributions: no platform package of ${name} is installed`]
@@ -67,6 +81,8 @@ async function analyse(entry: string): Promise<BuiltWith> {
     format: 'esm',
     external: [...EXTERNAL],
     metafile: true,
+    // Keep paths as imported, so a symlinked node_modules stays under ROOT (see bundle.ts).
+    preserveSymlinks: true,
     write: false,
     logLevel: 'silent',
   });

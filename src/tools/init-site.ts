@@ -1,8 +1,14 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
-import { dirFlag, type Env, type Output, parseOrUsage, resolveSettings } from '../lib/cli.ts';
+import {
+  dirFlag,
+  type Env,
+  type Output,
+  parseOrUsage,
+  resolveSettings,
+  runIfMain,
+} from '../lib/cli.ts';
 import { isErrnoException } from '../lib/node-guards.ts';
 import { SITE_SAMPLE } from '../lib/paths.ts';
 import { errorMessage } from '../shared/guards.ts';
@@ -70,6 +76,4 @@ export async function main(
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  process.exitCode = await main(process.argv.slice(2));
-}
+await runIfMain(import.meta.url, () => main(process.argv.slice(2)));

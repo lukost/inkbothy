@@ -156,6 +156,28 @@ const nextFrame = () =>
     requestAnimationFrame(() => resolve());
   });
 
+/** Holds animation frames until `run` is called; a cancelled frame never runs. */
+function manualFrames() {
+  const queue = new Map<number, FrameRequestCallback>();
+  let last = 0;
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    queue.set(++last, callback);
+    return last;
+  });
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+    queue.delete(id);
+  });
+  return {
+    pending: () => queue.size,
+    run(): void {
+      for (const [id, callback] of [...queue]) {
+        queue.delete(id);
+        callback(0);
+      }
+    },
+  };
+}
+
 const settled = () => vi.waitFor(() => expect(document.querySelector('[aria-busy]')).toBeNull());
 
 beforeEach(() => {
@@ -237,6 +259,17 @@ describe('loading by button', () => {
       true,
     ]);
     expect($$(document, 'ol > li > header')).toHaveLength(3);
+  });
+
+  it('skips an item with an empty fragment URL and still fills the batch', async () => {
+    mount(4);
+    const [blank] = items();
+    blank?.setAttribute('data-fragment', '');
+    teardown = initStream();
+    button().click();
+    await vi.waitFor(() => expect(loaded()).toHaveLength(2));
+    expect(fetched()).toEqual(['/blog/p2/fragment.html', '/blog/p3/fragment.html']);
+    expect(blank?.querySelector('article')).toBeNull();
   });
 
   it('loads the next batch on every press and the last, shorter one', async () => {
@@ -647,6 +680,19 @@ describe('double init and teardown', () => {
     expect(document.querySelector('[role="status"]')).toBeNull();
     expect($$(document, '[aria-busy]')).toHaveLength(0);
   });
+
+  it('is not busy at once after a teardown during a fetch', async () => {
+    mount(2);
+    const one = held(fragmentOf('/blog/p1/', '<p>late</p>'));
+    pages.set('/blog/p1/fragment.html', one.make);
+    teardown = initStream();
+    button().click();
+    expect($$(document, 'ol.stream-rest[aria-busy]')).toHaveLength(1);
+    teardown();
+    expect($$(document, '[aria-busy]')).toHaveLength(0);
+    one.release();
+    await settled();
+  });
 });
 
 describe('a list whose posts all fail', () => {
@@ -736,6 +782,58 @@ describe('focus and announcements', () => {
     expect(heading.hasAttribute('tabindex')).toBe(false);
     heading.focus();
     expect(heading.hasAttribute('tabindex')).toBe(false);
+  });
+
+  it('reacts to the first blur only, not to a later one of a tabindex the page set', async () => {
+    mount(3);
+    teardown = initStream();
+    button().click();
+    await vi.waitFor(() => expect(loaded()).toHaveLength(2));
+    const heading = $(loaded()[0] ?? document.body, 'h2');
+    heading.blur();
+    heading.tabIndex = -1;
+    heading.focus();
+    heading.blur();
+    expect(heading.getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('shows only the newest announcement when another comes before the frame', async () => {
+    mount(3, 1);
+    pages.set('/blog/p2/fragment.html', () => new Response('', { status: 500 }));
+    teardown = initStream();
+    const frames = manualFrames();
+    const written: string[] = [];
+    new MutationObserver(() => written.push(status() ?? '')).observe(
+      $(document, '[role="status"]'),
+      { childList: true, characterData: true, subtree: true },
+    );
+    observer().report(true);
+    await vi.waitFor(() => expect(loaded()).toHaveLength(1));
+    await settled();
+    expect(frames.pending()).toBe(1);
+    observer().report(true);
+    await vi.waitFor(() => expect(document.querySelector('[data-failed]')).not.toBeNull());
+    await settled();
+    expect(frames.pending()).toBe(1);
+    frames.run();
+    await Promise.resolve();
+    expect(status()).toBe('1 post could not be loaded');
+    expect(written.filter(Boolean)).toEqual(['1 post could not be loaded']);
+  });
+
+  it('writes no announcement after the teardown', async () => {
+    mount(3);
+    teardown = initStream();
+    const frames = manualFrames();
+    const line = $(document, '[role="status"]');
+    observer().report(true);
+    await vi.waitFor(() => expect(loaded()).toHaveLength(2));
+    await settled();
+    expect(frames.pending()).toBe(1);
+    teardown();
+    expect(frames.pending()).toBe(0);
+    frames.run();
+    expect(line.textContent).toBe('');
   });
 
   it('keeps focus on the button when every post of a pressed batch failed', async () => {

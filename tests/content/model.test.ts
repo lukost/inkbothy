@@ -90,6 +90,13 @@ describe('normalize: placement', () => {
     expect(r).toMatchObject({ url, section, slug });
   });
 
+  it('warns once for each directory that is not a clean slug', () => {
+    expect(normalize(base, 'Blog/My Post').warnings).toEqual([
+      'directory "Blog" is not a clean slug (suggest "blog")',
+      'directory "My Post" is not a clean slug (suggest "my-post")',
+    ]);
+  });
+
   it('warns about directories that are not clean slugs', () => {
     expect(normalize(base, 'blog/My Post').warnings).toEqual([
       'directory "My Post" is not a clean slug (suggest "my-post")',
@@ -137,6 +144,7 @@ describe('normalize: fields', () => {
       'blog/dma',
     );
     expect(r.warnings).toEqual([]);
+    expect(r.meta.extra).toEqual({});
     expect(r.meta).toMatchObject({
       title: 'DMA',
       summary: 'S',
@@ -166,6 +174,30 @@ describe('normalize: fields', () => {
       links: [{ label: 'Docs', url: 'https://example.com/d' }],
     });
     expect(r.warnings).toEqual([]);
+    expect(r.meta.extra).toEqual({});
+  });
+
+  it('keeps none of the known front-matter keys in extra', () => {
+    const r = normalize(
+      {
+        title: 'T',
+        summary: 'S',
+        published: '2026-01-01',
+        updates: [{ date: '2026-02-01', note: 'n' }],
+        categories: ['c'],
+        tags: ['t'],
+        draft: false,
+        toc: true,
+        featured: true,
+        copyright: 'c',
+        status: 's',
+        repo: 'https://example.com/r',
+        links: [{ label: 'L', url: 'https://example.com/l' }],
+        unknown: 1,
+      },
+      'projects/p',
+    );
+    expect(r.meta.extra).toEqual({ unknown: 1 });
   });
 
   it('omits absent optional fields entirely', () => {
@@ -250,6 +282,15 @@ describe('normalize: fields', () => {
       expect(r.warnings).toEqual(['missing published date']);
     });
 
+    it.each([
+      [20260101, '20260101'],
+      [{ year: 2026 }, '{"year":2026}'],
+    ])('warns and drops the non-text date %j', (published, shown) => {
+      const r = normalize({ title: 'T', published }, 'blog/x');
+      expect(r.meta.published).toBeNull();
+      expect(r.warnings).toEqual([`published: invalid date ${shown} (expected YYYY-MM-DD)`]);
+    });
+
     it('warns and drops an invalid date', () => {
       const r = normalize({ title: 'T', published: '2026-02-30' }, 'blog/x');
       expect(r.meta.published).toBeNull();
@@ -281,6 +322,13 @@ describe('normalize: fields', () => {
       ];
       const r = normalize({ ...base, updates }, 'blog/x');
       expect(r.meta.updates.map((u) => u.note)).toEqual(['first', 'second']);
+    });
+
+    it.each([20261120, { year: 2026 }])('drops an update whose date is the non-text %j', (date) => {
+      const r = normalize({ ...base, updates: [{ date, note: 'n' }] }, 'blog/x');
+      expect(r.meta.updates).toEqual([]);
+      expect(r.meta.updated).toBeNull();
+      expect(r.warnings).toEqual(['updates[0]: invalid or missing date; entry ignored']);
     });
 
     it('drops malformed entries with indexed warnings and strips extra keys', () => {

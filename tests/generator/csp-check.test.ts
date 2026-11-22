@@ -32,6 +32,10 @@ describe('cspIssues', () => {
 
   it('names each kind once, however often it occurs', () => {
     const issues = cspIssues('<script>1</script><script>2</script><b onclick=a onmouseover=b></b>');
-    expect(issues).toHaveLength(3);
+    expect(issues).toEqual([
+      expect.stringContaining('inline <script>'),
+      expect.stringContaining('event-handler attribute onclick'),
+      expect.stringContaining('event-handler attribute onmouseover'),
+    ]);
   });
 });

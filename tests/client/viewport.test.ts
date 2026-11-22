@@ -63,6 +63,16 @@ describe('onResized', () => {
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
+  it('calls exactly 150 ms after the last resize, not before', () => {
+    const callback = vi.fn();
+    onResized(callback, lifetime.signal);
+    window.dispatchEvent(new Event('resize'));
+    vi.advanceTimersByTime(149);
+    expect(callback).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
+
   it('calls again for a later resize', () => {
     const callback = vi.fn();
     onResized(callback, lifetime.signal);

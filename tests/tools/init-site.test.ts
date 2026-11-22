@@ -4,19 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../../src/config/load.ts';
 import { SITE_SAMPLE } from '../../src/lib/paths.ts';
 import { initSite, main } from '../../src/tools/init-site.ts';
-import { trackedTrees } from '../helpers.ts';
+import { sink, trackedTrees } from '../helpers.ts';
 
 const { tree } = trackedTrees();
-
-const sink = () => {
-  const s = {
-    text: '',
-    write(t: string) {
-      s.text += t;
-    },
-  };
-  return s;
-};
 
 const listing = async (dir: string) =>
   (await fs.readdir(dir, { recursive: true, withFileTypes: true }))

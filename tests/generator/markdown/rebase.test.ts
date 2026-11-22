@@ -342,11 +342,9 @@ describe('author anchors', () => {
     expect(page).toContain('<a href="#two--intro">x</a>');
     expect(page).toContain('<a href="#intro">x</a>');
     const ids = [...page.matchAll(/ id="([^"]*)"/g)].map((m) => m[1]);
-    for (const target of page.matchAll(/<a href="#([^"]*)">x<\/a>/g)) {
-      if (target[1]?.includes('--')) {
-        expect(ids).toContain(target[1]);
-      }
-    }
+    const targets = [...page.matchAll(/<a href="#([^"]*)">x<\/a>/g)].map((m) => m[1]);
+    expect(targets).toEqual(['one--intro', 'two--intro', 'intro']);
+    expect(ids).toEqual(expect.arrayContaining(['one--intro', 'two--intro']));
   });
 
   it('does not touch fragments of other documents or absolute URLs', () => {

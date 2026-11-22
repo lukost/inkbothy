@@ -4,9 +4,16 @@ import fs from 'node:fs/promises';
 import http from 'node:http';
 import { type AddressInfo, isIPv6 } from 'node:net';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
-import { dirFlag, type Env, type Output, parseOrUsage, resolveSettings } from '../lib/cli.ts';
+import {
+  dirFlag,
+  type Env,
+  interruptSignal,
+  type Output,
+  parseOrUsage,
+  resolveSettings,
+  runIfMain,
+} from '../lib/cli.ts';
 import { CSP_FILE } from '../lib/http-policy.ts';
 import { DATA, ROOT } from '../lib/paths.ts';
 import { errorMessage } from '../shared/guards.ts';
@@ -221,9 +228,4 @@ export async function main(
   return 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const stop = new AbortController();
-  process.once('SIGINT', () => stop.abort());
-  process.once('SIGTERM', () => stop.abort());
-  process.exitCode = await main(process.argv.slice(2), { signal: stop.signal });
-}
+await runIfMain(import.meta.url, () => main(process.argv.slice(2), { signal: interruptSignal() }));

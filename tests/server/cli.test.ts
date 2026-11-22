@@ -1,30 +1,27 @@
 import { writeFileSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import http from 'node:http';
+import net from 'node:net';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BUILD, DATA, PUBLISH, ROOT, SITE_DEFAULT } from '../../src/lib/paths.ts';
 import { main, parseCli, type StepResult } from '../../src/server/cli.ts';
-import { doc, trackedTrees } from '../helpers.ts';
+import { doc, sink, trackedTrees } from '../helpers.ts';
 import { fakeWatch } from './fake-watch.ts';
 import { listening, request } from './http.ts';
 
 const { tree } = trackedTrees();
 
-const sink = () => {
-  const s = {
-    text: '',
-    write(t: string) {
-      s.text += t;
-    },
-  };
-  return s;
-};
-
 /** Environment that points the serve process at the given publish (and build) directory. */
 const dirsEnv = (publishDir: string, buildDir?: string) => ({
   PUBLISH_DIR: publishDir,
   ...(buildDir === undefined ? {} : { OUT_DIR: buildDir }),
+});
+
+const hasIpv6Loopback = await new Promise<boolean>((resolve) => {
+  const probe = net.createServer();
+  probe.once('error', () => resolve(false));
+  probe.listen(0, '::1', () => probe.close(() => resolve(true)));
 });
 
 describe('parseCli', () => {
@@ -102,6 +99,7 @@ describe('parseCli', () => {
 describe('serve main', () => {
   const running: (() => Promise<number>)[] = [];
   afterEach(async () => {
+    vi.restoreAllMocks();
     await Promise.all(running.splice(0).map((stop) => stop()));
   });
 
@@ -134,7 +132,7 @@ describe('serve main', () => {
       abort.abort();
       return done;
     });
-    await vi.waitFor(() => expect(stdout.text).toMatch(/at http:\/\/127\.0\.0\.1:\d+\/\n/));
+    await vi.waitFor(() => expect(stdout.text).toMatch(/at http:\/\/\S+:\d+\/\n/));
     const port = Number(/:(\d+)\/\n/.exec(stdout.text)?.[1]);
     return { port, stdout, stderr, abort, done, publishDir };
   }
@@ -151,6 +149,18 @@ describe('serve main', () => {
     s.abort.abort();
     expect(await s.done).toBe(0);
     await expect(request(s.port, '/')).rejects.toThrow(/ECONNREFUSED/);
+  });
+
+  it('binds to the address given by --host', async () => {
+    const s = await start(['--no-watch', '--host', '127.0.0.1']);
+    expect(s.stdout.text).toMatch(new RegExp(`at http://127\\.0\\.0\\.1:${s.port}/\\n$`));
+    expect((await request(s.port, '/')).status).toBe(200);
+  });
+
+  it.skipIf(!hasIpv6Loopback)('prints an IPv6 address in brackets and listens on it', async () => {
+    const s = await start(['--no-watch', '--host', '::1']);
+    expect(s.stdout.text).toMatch(new RegExp(`at http://\\[::1\\]:${s.port}/\\n$`));
+    expect((await fetch(`http://[::1]:${s.port}/`)).status).toBe(200);
   });
 
   it('returns 0 immediately when already aborted', async () => {
@@ -290,13 +300,20 @@ describe('serve main', () => {
     ['build', 0, 'error: blog/x/index.md: bad front matter\n'],
     ['publish', 1, 'error: manifest lists files missing\n'],
   ])(
-    'keeps the previous site and does not reload when the %s step fails',
+    'keeps the previous site and policy and does not reload when the %s step fails',
     async (_name, failing, output) => {
       const fake = fakeWatch();
+      const publishDir = await tree({
+        'index.html': '<head></head>',
+        '_csp.txt': "default-src 'self'\n",
+      });
       const results: Partial<StepResult>[] = [];
       results[failing] = { code: 1, stderr: output };
-      const { calls, runStep } = steps(results);
-      const s = await start([], { watch: fake.watch, runStep });
+      // Each step leaves a new policy behind, as a half-finished publish would.
+      const { calls, runStep } = steps(results, () =>
+        writeFileSync(path.join(publishDir, '_csp.txt'), "default-src 'none'\n"),
+      );
+      const s = await start([], { watch: fake.watch, runStep, publishDir });
       fake.change();
       await vi.waitFor(() => expect(s.stderr.text).toContain('rebuild failed'));
       expect(s.stderr.text).toBe(
@@ -449,7 +466,26 @@ describe('serve main', () => {
     expect(fake.watchers).toEqual([]);
   });
 
+  it('returns 1 when the server does not report a TCP address, and closes it', async () => {
+    vi.spyOn(http.Server.prototype, 'address').mockReturnValue('/run/serve.sock');
+    const close = vi.spyOn(http.Server.prototype, 'close');
+    const fake = fakeWatch();
+    const stderr = sink();
+    const publishDir = await tree({ '_csp.txt': 'x' });
+    const code = await main(['--port', '0'], {
+      stdout: sink(),
+      stderr,
+      env: dirsEnv(publishDir),
+      watch: fake.watch,
+    });
+    expect(code).toBe(1);
+    expect(stderr.text).toBe('error: server is not listening on a TCP address\n');
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(fake.watchers).toEqual([]);
+  });
+
   it('returns 1 and closes the server when a path cannot be watched', async () => {
+    const close = vi.spyOn(http.Server.prototype, 'close');
     const stderr = sink();
     const publishDir = await tree({ '_csp.txt': 'x' });
     const code = await main(['--port', '0'], {
@@ -462,5 +498,6 @@ describe('serve main', () => {
     });
     expect(code).toBe(1);
     expect(stderr.text).toBe('error: ENOENT: no such directory\n');
+    expect(close).toHaveBeenCalledTimes(1);
   });
 });

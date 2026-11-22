@@ -169,6 +169,45 @@ describe('bundle (fonts)', () => {
     );
   });
 
+  it('maps entries and fonts reached through a symlinked directory, as with a symlinked node_modules', async () => {
+    const real = await tree({ 'f.woff2': 'wOF2 a' });
+    await entries('export {};', '@font-face { src: url(f.woff2) }', {}, real);
+    const link = path.join(await tree(), 'linked');
+    await fs.symlink(real, link);
+    const b = await bundle({
+      js: path.join(link, 'entry.ts'),
+      css: path.join(link, 'entry.css'),
+      preload: [path.join(link, 'f.woff2')],
+    });
+    expect(b.assets.js).toMatch(/^\/assets\/entry-[A-Z0-9]{8}\.js$/);
+    expect(b.assets.preload[0]).toMatch(/^\/assets\/fonts\/f-[A-Z0-9]{8}\.woff2$/);
+  });
+
+  it('lists the packages of a symlinked node_modules below the project, not at their real location', async () => {
+    const store = await tree({
+      'kept/package.json': JSON.stringify({ name: 'kept', main: 'index.js' }),
+      'kept/index.js': 'export const used = () => globalThis.name;',
+    });
+    const dir = await tree();
+    await fs.symlink(store, path.join(dir, 'node_modules'));
+    const b = await bundle(
+      await entries('import { used } from "kept"; console.log(used());', 'a{}', {}, dir),
+    );
+    expect(b.packageDirs.map((d) => path.relative(dir, d))).toEqual([
+      path.join('node_modules', 'kept'),
+    ]);
+    expect(b.inputs.some((input) => input.endsWith('node_modules/kept/index.js'))).toBe(true);
+    expect(b.inputs.every((input) => !input.startsWith('..'))).toBe(true);
+  });
+
+  it('rejects a preload source that does not exist by its resolved path', async () => {
+    const e = await entries('export {};');
+    const missing = path.join(path.dirname(e.js), 'missing.woff2');
+    await expect(bundle({ ...e, preload: [missing] })).rejects.toThrow(
+      `bundle produced no output for ${missing}`,
+    );
+  });
+
   it('has no preload without a request', async () => {
     const e = await entries('export {};');
     expect((await bundle(e)).assets.preload).toEqual([]);
@@ -244,6 +283,13 @@ describe('bundle (custom entries)', () => {
   it('rejects with the compiler message when the entry does not build', async () => {
     await expect(bundle(await entries('import "no-such-package-xyz";'))).rejects.toThrow(
       /no-such-package-xyz/,
+    );
+  });
+
+  it('fails when an entry yields no output of its kind', async () => {
+    const e = await entries('console.log(1);');
+    await expect(bundle({ js: e.js, css: e.js })).rejects.toThrow(
+      `bundle produced no .css output for ${e.js}`,
     );
   });
 

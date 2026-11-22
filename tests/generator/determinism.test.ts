@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { build } from '../../src/generator/build.ts';
 import { SEARCH_INDEX_FILE } from '../../src/generator/search.ts';
 import { doc, siteConfig, trackedTrees } from '../helpers.ts';
@@ -50,10 +50,24 @@ function difference(a: Map<string, string>, b: Map<string, string>): string[] {
 }
 
 describe('build determinism', () => {
+  afterEach(() => vi.restoreAllMocks());
+
   it('produces byte-identical trees, names included, from the same site and clock', async () => {
     const first = await built(SITE);
     expect(first.size).toBeGreaterThan(20);
     expect(difference(first, await built(SITE))).toEqual([]);
+  }, 60_000);
+
+  it('does not depend on the order files are created or listed in', async () => {
+    const reference = await built(SITE);
+    const readdir = fs.readdir.bind(fs);
+    // A file system may list a directory in any order.
+    vi.spyOn(fs, 'readdir').mockImplementation(async (...args: Parameters<typeof readdir>) => {
+      const entries = await readdir(...args);
+      return Array.isArray(entries) ? entries.reverse() : entries;
+    });
+    const reversed = Object.fromEntries(Object.entries(SITE).reverse());
+    expect(difference(reference, await built(reversed))).toEqual([]);
   }, 60_000);
 
   it('changes only the pages that show an edited post, and the search index', {

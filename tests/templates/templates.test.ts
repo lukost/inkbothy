@@ -244,6 +244,27 @@ describe('renderStream', () => {
     expect($(empty, '.empty').textContent).toBe('No pieces yet.');
   });
 
+  it('lists every post as a header when none is to be shown in full', () => {
+    const el = dom(renderStream({ heading: 'B', items: posts, ...options, initial: 0 }));
+    expect(el.querySelector('article')).toBeNull();
+    expect($$(el, 'ol.stream-rest > li')).toHaveLength(5);
+    expect($(el, 'ol.stream-rest > li').dataset.fragment).toBe('/blog/1/fragment.html');
+  });
+
+  it('embeds every post and has no rest list when `initial` exceeds their number', () => {
+    const el = dom(renderStream({ heading: 'B', items: posts, ...options, initial: 9 }));
+    expect($$(el, 'article')).toHaveLength(5);
+    expect(el.querySelector('ol.stream-rest')).toBeNull();
+  });
+
+  it('keeps a hostile URL inside the attributes it is written to', () => {
+    const url = '/blog/"><img src=x><b>/';
+    const el = dom(renderStream({ heading: 'B', items: [item({ url })], ...options, initial: 0 }));
+    expect(el.querySelector('img, b')).toBeNull();
+    expect($(el, 'ol.stream-rest > li').getAttribute('data-fragment')).toBe(`${url}fragment.html`);
+    expect($(el, 'li h2 a').getAttribute('href')).toBe(url);
+  });
+
   it('says so when there are no posts', () => {
     const el = dom(renderStream({ heading: 'B', items: [], ...options }));
     expect(el.querySelector('.empty')).not.toBeNull();
